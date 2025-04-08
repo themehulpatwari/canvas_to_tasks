@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Canvas to Google Tasks</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container modern-container">
+        <div class="page-header">
+            <h1><i class="fas fa-shield-alt icon-space"></i>Privacy Policy</h1>
+            <p class="subtitle">Canvas to Google Tasks Sync</p>
+        </div>
+        
+        <div class="privacy-content">
+            <p>This Privacy Policy describes how your personal information is collected, used, and shared when you use our Canvas to Google Tasks Sync application.</p>
+            
+            <h2>What Information We Collect</h2>
+            <p>When you use our application, we collect the following information:</p>
+            <ul>
+                <li><strong>Account Information:</strong> When you log in with your Google account, we receive your email address, name, and profile picture as provided by Google.</li>
+                <li><strong>Calendar Data:</strong> We access the calendar events from the Canvas ICS URL you provide to convert them into tasks.</li>
+                <li><strong>OAuth Tokens:</strong> We store OAuth tokens provided by Google to maintain your authenticated session and sync your tasks automatically.</li>
+                <li><strong>Calendar URLs:</strong> We store the Canvas ICS calendar URLs you provide to enable automatic syncing.</li>
+            </ul>
+            
+            <h2>How We Use Your Information</h2>
+            <p>We use the information we collect to:</p>
+            <ul>
+                <li>Authenticate you with Google's services</li>
+                <li>Create and manage tasks in your Google Tasks based on your calendar events</li>
+                <li>Enable automatic background syncing of your calendar events to Google Tasks</li>
+                <li>Improve and optimize the application's functionality</li>
+                <li>Communicate with you about the service if necessary</li>
+            </ul>
+            
+            <h2>Data Storage and Security</h2>
+            <p>We store your information in a secure MongoDB database. We implement appropriate security measures to protect against unauthorized access, alteration, disclosure, or destruction of your personal information. However, no method of transmission over the Internet or electronic storage is 100% secure, so we cannot guarantee absolute security.</p>
+            
+            <h2>Third-Party Services</h2>
+            <p>Our application integrates with the following third-party services:</p>
+            <ul>
+                <li><strong>Google OAuth and Google Tasks API:</strong> We use these services to authenticate you and to create tasks in your Google account. Your use of Google services is subject to Google's Privacy Policy.</li>
+                <li><strong>MongoDB Atlas:</strong> We use MongoDB Atlas to store your information securely. MongoDB's use of your data is subject to their Privacy Policy.</li>
+            </ul>
+            
+            <h2>Data Retention</h2>
+            <p>We retain your information for as long as your account is active or as needed to provide you services. If you wish to delete your account or request that we no longer use your information, please contact us.</p>
+            
+            <h2>Your Rights</h2>
+            <p>You have the right to:</p>
+            <ul>
+                <li>Access the personal information we have about you</li>
+                <li>Request that your personal information be corrected or deleted</li>
+                <li>Object to our processing of your personal information</li>
+                <li>Request that we restrict the processing of your personal information</li>
+                <li>Request portability of your personal information</li>
+            </ul>
+            
+            <h2>Children's Privacy</h2>
+            <p>Our application is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13.</p>
+            
+            <h2>Changes to This Privacy Policy</h2>
+            <p>We may update this privacy policy from time to time. We will notify you of any changes by posting the new privacy policy on this page and updating the "Last Updated" date.</p>
+            
+            <h2>Contact Us</h2>
+            <p>If you have any questions about this Privacy Policy, please contact us at:</p>
+            <ul>
+                <li>Email: themehulpatwari@gmail.com</li>
+            </ul>
+            
+            <p class="updated-date">Last Updated: April 8, 2025</p>
+            
+            <div class="action-buttons">
+                <a href="{{ url_for('home') }}" class="action-btn home-btn">
+                    <i class="fas fa-home icon-space"></i>Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="page-footer">
+        <p>&copy; Canvas to Google Tasks Sync | <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a></p>
+    </footer>
+</body>
+</html>

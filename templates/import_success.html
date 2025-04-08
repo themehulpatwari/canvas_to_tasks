@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ 'Canvas Sync Successful' if is_sync else 'Canvas Import Successful' }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container modern-container">
+        <div class="page-header">
+            <h1><i class="fas fa-calendar-alt icon-space"></i>Canvas to Tasks</h1>
+            <p class="subtitle">Convert your Canvas events to Google Tasks</p>
+        </div>
+        
+        <div class="card-container">
+            <div class="success-container modern-form">
+                <div class="success-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h1 class="success-title">
+                    {{ 'Canvas Sync Successful!' if is_sync else 'Canvas Import Successful!' }}
+                </h1>
+                
+                <p>{{ 'Your Canvas calendar events have been successfully synced with Google Tasks.' if is_sync else 'Your Canvas calendar events have been successfully imported to Google Tasks.' }}</p>
+                
+                <div class="success-details">
+                    <div class="detail-item">
+                        <i class="fas fa-tasks icon-space"></i>
+                        <span><strong>Tasklist:</strong> {{ tasklist_title }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-calendar-plus icon-space"></i>
+                        <span><strong>{{ 'New events added:' if is_sync else 'Events imported:' }}</strong> {{ task_count }}</span>
+                    </div>
+                </div>
+                
+                <p class="next-steps">
+                    <i class="fas fa-info-circle icon-space"></i>
+                    You can now view these Canvas assignments and events in your Google Tasks app or at 
+                    <a href="https://tasks.google.com/" target="_blank">tasks.google.com</a>.
+                </p>
+                
+                <!-- Error handling information section -->
+                <div class="error-handling-info">
+                    <p>
+                        <i class="fas fa-exclamation-triangle icon-space"></i>
+                        <strong>Having issues?</strong> If you encounter any errors, please try to:
+                    </p>
+                    <ol>
+                        <li>Logout and login again to refresh your authentication</li>
+                        <li>If problems persist, try clearing your browser cookies and then login again</li>
+                    </ol>
+                </div>
+                
+                <div class="action-buttons">
+                    <a href="{{ url_for('home') }}" class="action-btn home-btn">
+                        <i class="fas fa-home icon-space"></i>Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add subtle animation to form elements when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                document.querySelector('.card-container').classList.add('visible');
+                
+                // Add confetti effect for success
+                const successIcon = document.querySelector('.success-icon');
+                successIcon.classList.add('success-animate');
+            }, 100);
+        });
+    </script>
+</body>
+</html>
