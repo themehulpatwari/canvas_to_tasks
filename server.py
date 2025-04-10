@@ -62,7 +62,7 @@ oauth.register(
     client_secret=app_config['OAUTH_CLIENT_SECRET'],
     server_metadata_url=app_config['OAUTH_META_URL'],
     client_kwargs={
-        'scope': ['openid', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/tasks'],
+        'scope': ['openid', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/tasks', 'https://www.googleapis.com/auth/tasks.readonly'],
     }
 )
 
