@@ -156,10 +156,10 @@ def sync_all_users():
 
 def run_scheduler():
     """Run the scheduler that triggers sync every hour"""
-    # Schedule the sync to run every hour
-    schedule.every(1).hours.do(sync_all_users)
+    # Schedule the sync to run every 24 hours
+    schedule.every(24).hours.do(sync_all_users)
     
-    logger.info("Background sync scheduler started. Will sync every hour.")
+    logger.info("Background sync scheduler started. Will sync every 24 hours.")
     
     # Run once immediately on startup
     sync_all_users()
@@ -167,7 +167,7 @@ def run_scheduler():
     # Keep running indefinitely
     while True:
         schedule.run_pending()
-        time.sleep(60)  # Check every minute if there's a scheduled task to run
+        time.sleep(3600)  # Check every hour if there's a scheduled task to run
 
 
 if __name__ == "__main__":
