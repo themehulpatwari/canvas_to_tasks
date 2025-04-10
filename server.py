@@ -238,6 +238,10 @@ def sync_calendar():
 def privacy_policy():
     return render_template('privacy_policy.html')
 
+@app.route('/terms-of-service')
+def terms_of_service():
+    return render_template('terms_of_service.html')
+
 if __name__ == '__main__':
     app.run()
     # app.run(host="0.0.0.0", port=app_config['FLASK_PORT'], debug=os.getenv("FLASK_ENV") == "development")
