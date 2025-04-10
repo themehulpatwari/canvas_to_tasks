@@ -213,7 +213,7 @@ def sync_with_tasklist(oauth_token, events, include_past_events=True):
             existing_tasks = []
         else:
             # Get all existing tasks from the dot_tasklist
-            tasks_result = service.tasks().list(tasklist=dot_tasklist_id).execute()
+            tasks_result = service.tasks().list(tasklist=dot_tasklist_id, showCompleted=True, showHidden=True).execute()
             existing_tasks = tasks_result.get('items', [])
         
         # Create a set of existing task identifiers (title + due date)
