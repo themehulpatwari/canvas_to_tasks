@@ -33,7 +33,7 @@ While primarily designed for Canvas LMS calendar integration, this application c
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd dot
+cd canvas_to_tasks
 ```
 
 2. Install dependencies:
