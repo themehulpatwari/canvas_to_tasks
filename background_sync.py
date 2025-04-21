@@ -10,9 +10,20 @@ import google.oauth2.credentials
 import google_auth_oauthlib.flow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+import os
 
 from util import get_ics_events, sync_with_tasklist
 
+app_config = {
+    "OAUTH_CLIENT_ID": os.getenv("OAUTH_CLIENT_ID"),
+    "OAUTH_CLIENT_SECRET": os.getenv("OAUTH_CLIENT_SECRET"),
+    "OAUTH_META_URL": "https://accounts.google.com/.well-known/openid-configuration",
+    "FLASK_SECRET": os.getenv("FLASK_SECRET"),
+    "FLASK_PORT": int(os.getenv("FLASK_PORT", 3000)),
+    "MONGO_DB_PASS": os.getenv("MONGO_DB_PASS"),
+    "MONGO_DB_USER": os.getenv("MONGO_DB_USER"),
+    "MONGO_DB_NAME": os.getenv("MONGO_DB_NAME"),
+}
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -24,9 +35,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("background_sync")
 
-# MongoDB connection settings
-MONGO_DB_PASS = "svkSnyNOAw32fHo0"  # Consider using environment variables
-MONGO_URI = f"mongodb+srv://themehulpatwari:{MONGO_DB_PASS}@dotuser.u1cau2u.mongodb.net/?retryWrites=true&w=majority&appName=dotuser"
+# MongoDB connection settings - using app_config values
+MONGO_URI = f"mongodb+srv://mehulpatwari:{app_config['MONGO_DB_PASS']}@dotuser.u1cau2u.mongodb.net/?retryWrites=true&w=majority&appName=dotuser"
 
 
 def connect_to_mongodb():
@@ -51,8 +61,8 @@ def refresh_user_tokens(user_auth):
             token=None,  # We don't have a valid token
             refresh_token=user_auth.get('refresh_token'),
             token_uri="https://oauth2.googleapis.com/token",
-            client_id=user_auth.get('client_id'),
-            client_secret=user_auth.get('client_secret'),
+            client_id= app_config['OAUTH_CLIENT_ID'],
+            client_secret= app_config['OAUTH_CLIENT_SECRET'],
             scopes=["https://www.googleapis.com/auth/tasks"]
         )
         
@@ -157,7 +167,7 @@ def sync_all_users():
 def run_scheduler():
     """Run the scheduler that triggers sync every hour"""
     # Schedule the sync to run every 24 hours
-    schedule.every(24).hours.do(sync_all_users)
+    schedule.every(6).hours.do(sync_all_users)
     
     logger.info("Background sync scheduler started. Will sync every 24 hours.")
     
@@ -166,6 +176,7 @@ def run_scheduler():
     
     # Keep running indefinitely
     while True:
+        print("Check")
         schedule.run_pending()
         time.sleep(3600)  # Check every hour if there's a scheduled task to run
 
