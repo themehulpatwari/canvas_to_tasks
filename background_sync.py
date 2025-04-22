@@ -36,7 +36,7 @@ logging.basicConfig(
 logger = logging.getLogger("background_sync")
 
 # MongoDB connection settings - using app_config values
-MONGO_URI = f"mongodb+srv://{app_config['MONGO_DB_USER']}:{app_config['MONGO_DB_PASS']}@dotuser.u1cau2u.mongodb.net/?retryWrites=true&w=majority&appName=dotuser"
+MONGO_URI = f"mongodb+srv://{app_config['MONGO_DB_USER']}:{app_config['MONGO_DB_PASS']}@{app_config['MONGO_DB_NAME']}.u1cau2u.mongodb.net/?retryWrites=true&w=majority&appName={app_config['MONGO_DB_NAME']}"
 
 
 
