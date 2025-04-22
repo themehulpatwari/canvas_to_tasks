@@ -297,6 +297,39 @@ pre {
     box-shadow: 0 6px 10px rgba(219, 68, 55, 0.3);
 }
 
+.delete-link-container {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.delete-btn {
+    background: linear-gradient(135deg, #9e9e9e, #757575);
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.delete-btn:hover {
+    background: linear-gradient(135deg, #757575, #616161);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+}
+
+.delete-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
 /* Modern UI styles */
 .modern-container {
     max-width: 700px;

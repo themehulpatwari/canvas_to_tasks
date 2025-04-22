@@ -11,8 +11,10 @@ import google_auth_oauthlib.flow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import os
-
+from dotenv import load_dotenv
 from util import get_ics_events, sync_with_tasklist
+
+load_dotenv()
 
 app_config = {
     "OAUTH_CLIENT_ID": os.getenv("OAUTH_CLIENT_ID"),

@@ -120,8 +120,6 @@ def auth():
             # Create update data dictionary
             update_data = {
                 "email": user_email,
-                "client_id": app_config['OAUTH_CLIENT_ID'],
-                "client_secret": app_config['OAUTH_CLIENT_SECRET'],
                 "last_updated": datetime.now()
             }
             
@@ -241,6 +239,32 @@ def privacy_policy():
 @app.route('/terms-of-service')
 def terms_of_service():
     return render_template('terms_of_service.html')
+
+@app.route('/delete-link', methods=['POST'])
+def delete_link():
+    # Check if user is logged in
+    if not session.get('user'):
+        flash('Please log in to delete your calendar link', 'error')
+        return redirect(url_for('home'))
+    
+    # Get user's email from session
+    user_email = session.get('user', {}).get('userinfo', {}).get('email')
+    
+    if user_email and db is not None:
+        try:
+            # Delete the ICS URL from the database
+            result = db.user_links.delete_one({"email": user_email})
+            
+            if result.deleted_count > 0:
+                flash('Your calendar link has been successfully deleted', 'info')
+            else:
+                flash('No calendar link found to delete', 'warning')
+                
+        except Exception as e:
+            flash(f"Database error: {str(e)}", 'error')
+            print(f"MongoDB error: {str(e)}")
+    
+    return redirect(url_for('home'))
 
 if __name__ == '__main__':
     app.run()
