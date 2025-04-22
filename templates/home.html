@@ -74,16 +74,17 @@
                                     <i class="fas fa-sign-out-alt icon-space"></i>Logout
                                 </a>
                             </div>
-                            {% if saved_link %}
-                            <div class="delete-link-container">
-                                <form method="POST" action="{{ url_for('delete_link') }}">
-                                    <button type="submit" class="delete-btn">
-                                        <i class="fas fa-trash-alt icon-space"></i>Delete Calendar Link
-                                    </button>
-                                </form>
-                            </div>
-                            {% endif %}
                         </form>
+                        
+                        {% if saved_link %}
+                        <div class="delete-link-container">
+                            <form method="POST" action="{{ url_for('delete_link') }}">
+                                <button type="submit" class="delete-btn">
+                                    <i class="fas fa-trash-alt icon-space"></i>Delete Calendar Link
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             {% else %}
