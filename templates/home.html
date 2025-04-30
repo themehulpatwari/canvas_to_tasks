@@ -14,6 +14,45 @@
             <p class="subtitle">Convert your Canvas and educational calendar events to Google Tasks</p>
         </div>
         
+        <!-- Adding a detailed app purpose explanation section -->
+        <div class="app-explanation">
+            <h2><i class="fas fa-info-circle icon-space"></i>What is Canvas to Tasks?</h2>
+            <p>Canvas to Tasks is a productivity tool designed to help students and educators stay organized by automatically converting your Canvas LMS assignments, deadlines, and events into manageable Google Tasks.</p>
+            
+            <div class="benefits-grid">
+                <div class="benefit-item">
+                    <i class="fas fa-sync-alt benefit-icon"></i>
+                    <h3>Automatic Syncing</h3>
+                    <p>Connect once and keep your tasks updated automatically with your Canvas calendar.</p>
+                </div>
+                <div class="benefit-item">
+                    <i class="fas fa-tasks benefit-icon"></i>
+                    <h3>Better Organization</h3>
+                    <p>Transform your academic calendar into actionable tasks in your Google account.</p>
+                </div>
+                <div class="benefit-item">
+                    <i class="fas fa-bell benefit-icon"></i>
+                    <h3>Never Miss Deadlines</h3>
+                    <p>Get reminders and manage your assignments across all your devices with Google Tasks.</p>
+                </div>
+                <div class="benefit-item">
+                    <i class="fas fa-user-graduate benefit-icon"></i>
+                    <h3>Built for Students</h3>
+                    <p>Specifically designed for Canvas LMS users to improve academic productivity.</p>
+                </div>
+            </div>
+            
+            <div class="how-it-works">
+                <h3><i class="fas fa-cogs icon-space"></i>How It Works:</h3>
+                <ol>
+                    <li>Login with your Google account</li>
+                    <li>Paste your Canvas Calendar feed URL (ICS format)</li>
+                    <li>Click "Sync with Tasks" to import your Canvas events</li>
+                    <li>View and manage your academic tasks in Google Tasks</li>
+                </ol>
+            </div>
+        </div>
+        
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="flash-messages">
