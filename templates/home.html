@@ -14,7 +14,31 @@
             <p class="subtitle">Convert your Canvas and educational calendar events to Google Tasks</p>
         </div>
         
-        <!-- Adding a detailed app purpose explanation section -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }} animated">
+                            <i class="fas fa-info-circle"></i>
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        <div class="card-container">
+            {% if not session %}
+                <div class="login-section modern-form">
+                    <p>You are not logged in. Click the button below to login with your Google account to start importing Canvas and other educational calendar events into your Google Tasks.</p>
+                    <a href="/login" class="login-btn modern-btn">
+                        <i class="fab fa-google icon-space"></i>Login with Google
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- App explanation section -->
         <div class="app-explanation">
             <h2><i class="fas fa-info-circle icon-space"></i>What is Canvas to Tasks?</h2>
             <p>Canvas to Tasks is a productivity tool designed to help students and educators stay organized by automatically converting your Canvas LMS assignments, deadlines, and events into manageable Google Tasks.</p>
@@ -52,19 +76,6 @@
                 </ol>
             </div>
         </div>
-        
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="flash-message {{ category }} animated">
-                            <i class="fas fa-info-circle"></i>
-                            <span>{{ message }}</span>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
         
         <div class="card-container">
             {% if session %}
@@ -125,13 +136,6 @@
                         </div>
                         {% endif %}
                     </div>
-                </div>
-            {% else %}
-                <div class="login-section modern-form">
-                    <p>You are not logged in. Click the button below to login with your Google account to start importing Canvas and other educational calendar events into your Google Tasks.</p>
-                    <a href="/login" class="login-btn modern-btn">
-                        <i class="fab fa-google icon-space"></i>Login with Google
-                    </a>
                 </div>
             {% endif %}
         </div>
