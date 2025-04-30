@@ -6,72 +6,94 @@
     <title>Terms of Service - Canvas to Google Tasks</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Aceternity UI Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(
+                circle at top center,
+                hsla(222, 80%, 60%, 0.1) 0%,
+                hsla(0, 0%, 100%, 0) 50%
+            ), 
+            #f9fafb;
+        }
+    </style>
 </head>
 <body>
-    <div class="container modern-container">
+    <!-- Aceternity background pattern -->
+    <div class="aceternity-pattern absolute inset-0 -z-10 h-full w-full bg-white [background:radial-gradient(125%_125%_at_50%_10%,#fff_40%,#63e_100%)]"></div>
+    
+    <div class="container modern-container backdrop-blur-sm bg-white/30">
         <div class="page-header">
-            <h1><i class="fas fa-gavel icon-space"></i>Terms of Service</h1>
+            <h1 class="tracking-tight"><i class="fas fa-gavel icon-space"></i>Terms of Service</h1>
             <p class="subtitle">Canvas to Google Tasks Sync</p>
         </div>
         
         <div class="privacy-content">
-            <p>Last Updated: April 8, 2025</p>
+            <p class="text-gray-500">Last Updated: April 8, 2025</p>
             <p>Please read these Terms of Service ("Terms") carefully before using the Canvas to Google Tasks Sync application ("the Service").</p>
             
-            <h2>1. Acceptance of Terms</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">1. Acceptance of Terms</h2>
             <p>By accessing or using the Service, you agree to be bound by these Terms. If you disagree with any part of the terms, you may not access the Service.</p>
             
-            <h2>2. Description of Service</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">2. Description of Service</h2>
             <p>Canvas to Google Tasks Sync is a web application that allows users to synchronize calendar events from Canvas and other educational platforms to Google Tasks.</p>
             
-            <h2>3. User Accounts</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">3. User Accounts</h2>
             <p>To use our Service, you need to authenticate with your Google account. You are responsible for safeguarding your account and for all activities that occur under your account.</p>
             
-            <h2>4. Data Usage</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">4. Data Usage</h2>
             <p>The Service will access:</p>
-            <ul>
+            <ul class="list-disc pl-6 mt-2 text-gray-700">
                 <li>Your Google account information (name, email, profile picture)</li>
                 <li>Your Google Tasks data</li>
                 <li>Calendar data from the ICS URLs you provide</li>
             </ul>
             <p>We store this information securely and use it only for providing and improving the Service.</p>
             
-            <h2>5. User Responsibilities</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">5. User Responsibilities</h2>
             <p>You agree to:</p>
-            <ul>
+            <ul class="list-disc pl-6 mt-2 text-gray-700">
                 <li>Provide accurate information when using the Service</li>
                 <li>Use the Service only for lawful purposes</li>
                 <li>Not attempt to gain unauthorized access to any portion of the Service</li>
                 <li>Not use the Service in any manner that could disable or overburden the Service</li>
             </ul>
             
-            <h2>6. Third-Party Services</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">6. Third-Party Services</h2>
             <p>The Service integrates with Google services and any educational platform that provides ICS calendar URLs. Your use of such third-party services is subject to their respective terms of service and privacy policies.</p>
             
-            <h2>7. Intellectual Property</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">7. Intellectual Property</h2>
             <p>The Service and its original content, features, and functionality are owned by the Service provider and are protected by international copyright, trademark, and other intellectual property laws.</p>
             
-            <h2>8. Termination</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">8. Termination</h2>
             <p>We may terminate or suspend your access to the Service immediately, without prior notice, for conduct that we believe violates these Terms or is harmful to other users of the Service or third parties.</p>
             
-            <h2>9. Limitation of Liability</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">9. Limitation of Liability</h2>
             <p>To the maximum extent permitted by law, in no event shall the Service provider be liable for any special, incidental, indirect, or consequential damages whatsoever arising out of or in connection with your use or inability to use the Service.</p>
             
-            <h2>10. Disclaimer of Warranties</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">10. Disclaimer of Warranties</h2>
             <p>The Service is provided "as is" and "as available" without any warranties of any kind, either express or implied, including but not limited to the implied warranties of merchantability, fitness for a particular purpose, or non-infringement.</p>
             
-            <h2>11. Changes to Terms</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">11. Changes to Terms</h2>
             <p>We reserve the right to modify or replace these Terms at any time. If a revision is material, we will provide at least 30 days' notice prior to any new terms taking effect.</p>
             
-            <h2>12. Contact Information</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">12. Contact Information</h2>
             <p>If you have any questions about these Terms, please contact us at:</p>
-            <ul>
+            <ul class="list-disc pl-6 mt-2 text-gray-700">
                 <li>Email: themehulpatwari@gmail.com</li>
             </ul>
             
-            <div class="action-buttons">
-                <a href="{{ url_for('home') }}" class="action-btn home-btn">
-                    <i class="fas fa-home icon-space"></i>Back to Home
+            <div class="action-buttons mt-8">
+                <a href="{{ url_for('home') }}" class="action-btn home-btn relative overflow-hidden">
+                    <span class="relative z-10 flex items-center justify-center">
+                        <i class="fas fa-home icon-space"></i>Back to Home
+                    </span>
+                    <div class="btn-shine-effect absolute inset-0 -z-10"></div>
                 </a>
             </div>
         </div>
@@ -80,5 +102,30 @@
     <footer class="page-footer">
         <p>&copy; Canvas to Google Tasks Sync | <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a> | <a href="{{ url_for('terms_of_service') }}">Terms of Service</a></p>
     </footer>
+    
+    <script>
+        // Button shine effect
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.action-btn').forEach(button => {
+                const shineEffect = button.querySelector('.btn-shine-effect');
+                
+                button.addEventListener('mousemove', (e) => {
+                    const rect = button.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    if (shineEffect) {
+                        shineEffect.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,255,255,0.3) 0%, transparent 50%)`;
+                    }
+                });
+                
+                button.addEventListener('mouseleave', () => {
+                    if (shineEffect) {
+                        shineEffect.style.background = 'transparent';
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>

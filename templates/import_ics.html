@@ -6,11 +6,31 @@
     <title>Import Canvas Calendar to Google Tasks</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Aceternity UI Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(
+                circle at top center,
+                hsla(222, 80%, 60%, 0.1) 0%,
+                hsla(0, 0%, 100%, 0) 50%
+            ), 
+            #f9fafb;
+        }
+    </style>
 </head>
 <body>
-    <div class="container modern-container">
+    <!-- Aceternity background pattern -->
+    <div class="aceternity-pattern absolute inset-0 -z-10 h-full w-full bg-white [background:radial-gradient(125%_125%_at_50%_10%,#fff_40%,#63e_100%)]"></div>
+    
+    <div class="container modern-container backdrop-blur-sm bg-white/40">
         <div class="page-header">
-            <h1><i class="fas fa-calendar-alt icon-space"></i>Canvas to Tasks</h1>
+            <h1 class="tracking-tight"><i class="fas fa-calendar-alt icon-space"></i>Canvas to Tasks</h1>
             <p class="subtitle">Sync your Canvas and educational events with Google Tasks</p>
         </div>
         
@@ -18,14 +38,14 @@
             {% if messages %}
                 <div class="flash-messages">
                     {% for category, message in messages %}
-                        <div class="flash-message {{ category }} animated">
+                        <div class="flash-message {{ category }} animated backdrop-blur-sm">
                             <i class="fas fa-info-circle"></i>
                             <span>{{ message }}</span>
                         </div>
                     {% endfor %}
                 </div>
                 <!-- Error troubleshooting tip -->
-                <div class="troubleshooting-tip">
+                <div class="troubleshooting-tip backdrop-blur-sm">
                     <p>
                         <i class="fas fa-exclamation-triangle icon-space"></i>
                         <strong>Having trouble?</strong> If you're experiencing errors, please try to:
@@ -39,18 +59,23 @@
         {% endwith %}
         
         <div class="card-container">
-            <div class="form-container modern-form">
+            <div class="form-container modern-form card-backdrop relative">
+                <!-- Aceternity border glow effect -->
+                <div class="card-border-glow absolute -inset-0.5 -z-10 rounded-lg bg-gradient-to-r from-purple-500 to-indigo-500 opacity-20 blur-xl"></div>
+                
                 <form method="POST" action="{{ url_for('sync_calendar') }}">
-                    <div class="form-group">
-                        <label for="ics_url">
+                    <div class="form-group relative">
+                        <label for="ics_url" class="flex items-center font-medium text-gray-700">
                             <i class="fas fa-link icon-space"></i>Canvas Calendar URL (ICS format)
                         </label>
-                        <div class="input-group">
+                        <div class="input-group relative">
                             <input type="url" name="ics_url" id="ics_url" 
                                    placeholder="https://canvas.institution.edu/calendar.ics" 
-                                   value="{{ saved_link }}" required>
+                                   value="{{ saved_link }}" required
+                                   class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200">
+                            <div class="input-glow absolute inset-0 -z-10 rounded-lg opacity-0 transition-opacity duration-300"></div>
                         </div>
-                        <div class="canvas-help">
+                        <div class="canvas-help mt-3">
                             <i class="fas fa-question-circle icon-space"></i>
                             <small>To get your Canvas calendar link: Canvas → Calendar → Calendar Feed → Copy Feed URL</small>
                         </div>
@@ -61,16 +86,20 @@
                         </div>
                         {% endif %}
                     </div>
-                    <div class="button-group">
-                        <button type="submit" class="sync-btn pulse-effect">
-                            <i class="fas fa-sync-alt icon-space"></i>Sync Canvas to Tasks
+                    <div class="button-group mt-6">
+                        <button type="submit" class="sync-btn pulse-effect relative overflow-hidden">
+                            <span class="relative z-10 flex items-center justify-center">
+                                <i class="fas fa-sync-alt icon-space"></i>Sync Canvas to Tasks
+                            </span>
+                            <div class="btn-shine-effect absolute inset-0 -z-10"></div>
                         </button>
                     </div>
                 </form>
             </div>
         </div>
         
-        <a href="{{ url_for('home') }}" class="back-link modern-link">
+        <a href="{{ url_for('home') }}" class="back-link modern-link relative group">
+            <span class="link-glow absolute inset-0 -z-10 rounded-full bg-indigo-100 opacity-0 blur-sm transition-all duration-300 group-hover:opacity-70"></span>
             <i class="fas fa-arrow-left icon-space"></i>Back to Home
         </a>
     </div>
@@ -85,6 +114,62 @@
             setTimeout(function() {
                 document.querySelector('.card-container').classList.add('visible');
             }, 100);
+            
+            // Input focus glow effect
+            document.querySelectorAll('input').forEach(input => {
+                const inputWrapper = input.closest('.input-group');
+                const glowElement = inputWrapper.querySelector('.input-glow');
+                
+                input.addEventListener('focus', () => {
+                    if (glowElement) glowElement.style.opacity = '1';
+                });
+                
+                input.addEventListener('blur', () => {
+                    if (glowElement) glowElement.style.opacity = '0';
+                });
+            });
+            
+            // Button shine hover effect
+            document.querySelectorAll('.sync-btn').forEach(button => {
+                const shineEffect = button.querySelector('.btn-shine-effect');
+                
+                button.addEventListener('mousemove', (e) => {
+                    const rect = button.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    if (shineEffect) {
+                        shineEffect.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,255,255,0.3) 0%, transparent 50%)`;
+                    }
+                });
+                
+                button.addEventListener('mouseleave', () => {
+                    if (shineEffect) {
+                        shineEffect.style.background = 'transparent';
+                    }
+                });
+            });
+            
+            // Card movement effect
+            const card = document.querySelector('.card-backdrop');
+            if (card) {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    
+                    const moveX = (x - centerX) / 30;
+                    const moveY = (y - centerY) / 30;
+                    
+                    card.style.transform = `perspective(1000px) rotateY(${moveX}deg) rotateX(${-moveY}deg) translateZ(10px)`;
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'perspective(1000px) rotateY(0deg) rotateX(0deg) translateZ(0)';
+                });
+            }
         });
     </script>
 </body>

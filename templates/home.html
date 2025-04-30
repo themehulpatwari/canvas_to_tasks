@@ -6,11 +6,30 @@
     <title>Canvas to Google Tasks Converter</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Aceternity UI Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(
+                circle at top center,
+                hsla(222, 80%, 60%, 0.1) 0%,
+                hsla(0, 0%, 100%, 0) 50%
+            ), 
+            #f9fafb;
+        }
+    </style>
 </head>
 <body>
-    <div class="container modern-container">
+    <div class="aceternity-pattern absolute inset-0 -z-10 h-full w-full bg-white [background:radial-gradient(125%_125%_at_50%_10%,#fff_40%,#63e_100%)]"></div>
+    
+    <div class="container modern-container backdrop-blur-sm bg-white/30">
         <div class="page-header">
-            <h1><i class="fas fa-calendar-alt icon-space"></i>Canvas to Tasks</h1>
+            <h1 class="tracking-tight"><i class="fas fa-calendar-alt icon-space"></i>Canvas to Tasks</h1>
             <p class="subtitle">Convert your Canvas and educational calendar events to Google Tasks</p>
         </div>
         
@@ -18,7 +37,7 @@
             {% if messages %}
                 <div class="flash-messages">
                     {% for category, message in messages %}
-                        <div class="flash-message {{ category }} animated">
+                        <div class="flash-message {{ category }} animated backdrop-blur-sm">
                             <i class="fas fa-info-circle"></i>
                             <span>{{ message }}</span>
                         </div>
@@ -29,31 +48,33 @@
         
         <div class="card-container">
             {% if session %}
-                <div class="user-info modern-form">
-                    <h2><i class="fas fa-user-circle icon-space"></i>Welcome, {{ session.userinfo.name if session.userinfo else session.email }}</h2>
+                <div class="user-info modern-form card-backdrop">
+                    <h2 class="text-2xl font-bold"><i class="fas fa-user-circle icon-space"></i>Welcome, {{ session.userinfo.name if session.userinfo else session.email }}</h2>
                     
                     <div class="user-details">
                         {% if session.userinfo and session.userinfo.picture %}
-                            <img class="user-img" src="{{ session.userinfo.picture }}" alt="Profile Picture">
+                            <img class="user-img border-2 border-indigo-500 shadow-lg" src="{{ session.userinfo.picture }}" alt="Profile Picture">
                         {% endif %}
                         <div>
                             {% if session.userinfo %}
-                                <p><strong>Email:</strong> {{ session.userinfo.email }}</p>
+                                <p class="text-gray-700"><strong>Email:</strong> {{ session.userinfo.email }}</p>
                             {% endif %}
                         </div>
                     </div>
                     
-                    <div class="form-section">
-                        <h3><i class="fas fa-file-import icon-space"></i>Import Canvas Calendar to Tasks</h3>
+                    <div class="form-section relative overflow-hidden rounded-xl border border-gray-200">
+                        <div class="glowing-card-effect absolute -inset-px -z-10 rounded-xl opacity-40 blur-xl"></div>
+                        <h3 class="text-xl font-semibold"><i class="fas fa-file-import icon-space"></i>Import Canvas Calendar to Tasks</h3>
                         <form method="POST" action="{{ url_for('sync_calendar') }}">
                             <div class="form-group">
-                                <label for="ics_url">
+                                <label for="ics_url" class="flex items-center">
                                     <i class="fas fa-link icon-space"></i>Canvas Calendar URL (ICS format)
                                 </label>
                                 <div class="input-group">
                                     <input type="url" name="ics_url" id="ics_url" 
                                            placeholder="https://canvas.institution.edu/calendar.ics" 
-                                           value="{{ saved_link if saved_link else '' }}" required>
+                                           value="{{ saved_link if saved_link else '' }}" required
+                                           class="border-gray-300 focus:ring-2 focus:ring-indigo-500">
                                 </div>
                                 <div class="format-hint">
                                     <i class="fas fa-info-circle icon-space"></i>
@@ -67,7 +88,7 @@
                                 {% endif %}
                             </div>
                             <div class="button-group">
-                                <button type="submit" class="sync-btn pulse-effect">
+                                <button type="submit" class="sync-btn shine-effect">
                                     <i class="fas fa-sync-alt icon-space"></i>Sync with Tasks
                                 </button>
                                 <a href="/logout" class="logout-btn">
@@ -88,9 +109,10 @@
                     </div>
                 </div>
             {% else %}
-                <div class="login-section modern-form">
-                    <p>You are not logged in. Click the button below to login with your Google account to start importing Canvas and other educational calendar events into your Google Tasks.</p>
-                    <a href="/login" class="login-btn modern-btn">
+                <div class="login-section modern-form card-backdrop">
+                    <div class="card-glow"></div>
+                    <p class="text-gray-600">You are not logged in. Click the button below to login with your Google account to start importing Canvas and other educational calendar events into your Google Tasks.</p>
+                    <a href="/login" class="login-btn modern-btn shine-effect">
                         <i class="fab fa-google icon-space"></i>Login with Google
                     </a>
                 </div>
@@ -98,7 +120,7 @@
         </div>
         
         {% if session %}
-        <div class="error-handling-info">
+        <div class="error-handling-info backdrop-blur-sm">
             <p>
                 <i class="fas fa-exclamation-triangle icon-space"></i>
                 <strong>Having issues?</strong> If you encounter any errors, please try to:
@@ -121,6 +143,25 @@
             setTimeout(function() {
                 document.querySelector('.card-container').classList.add('visible');
             }, 100);
+            
+            // Aceternity UI animation effects
+            document.querySelectorAll('.card-backdrop').forEach(card => {
+                const glowEffect = document.createElement('div');
+                glowEffect.className = 'glowing-card-effect';
+                card.appendChild(glowEffect);
+                
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    glowEffect.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(99, 102, 241, 0.15), transparent 40%)`;
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    glowEffect.style.background = 'transparent';
+                });
+            });
         });
     </script>
 </body>

@@ -6,29 +6,48 @@
     <title>Privacy Policy - Canvas to Google Tasks</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Aceternity UI Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(
+                circle at top center,
+                hsla(222, 80%, 60%, 0.1) 0%,
+                hsla(0, 0%, 100%, 0) 50%
+            ), 
+            #f9fafb;
+        }
+    </style>
 </head>
 <body>
-    <div class="container modern-container">
+    <!-- Aceternity background pattern -->
+    <div class="aceternity-pattern absolute inset-0 -z-10 h-full w-full bg-white [background:radial-gradient(125%_125%_at_50%_10%,#fff_40%,#63e_100%)]"></div>
+    
+    <div class="container modern-container backdrop-blur-sm bg-white/30">
         <div class="page-header">
-            <h1><i class="fas fa-shield-alt icon-space"></i>Privacy Policy</h1>
+            <h1 class="tracking-tight"><i class="fas fa-shield-alt icon-space"></i>Privacy Policy</h1>
             <p class="subtitle">Canvas to Google Tasks Sync</p>
         </div>
         
         <div class="privacy-content">
             <p>This Privacy Policy describes how your personal information is collected, used, and shared when you use our Canvas to Google Tasks Sync application.</p>
             
-            <h2>What Information We Collect</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">What Information We Collect</h2>
             <p>When you use our application, we collect the following information:</p>
-            <ul>
+            <ul class="list-disc pl-6 mt-2 text-gray-700">
                 <li><strong>Account Information:</strong> When you log in with your Google account, we receive your email address, name, and profile picture as provided by Google.</li>
                 <li><strong>Calendar Data:</strong> We access the calendar events from the Canvas ICS URL you provide to convert them into tasks.</li>
                 <li><strong>OAuth Tokens:</strong> We store OAuth tokens provided by Google to maintain your authenticated session and sync your tasks automatically.</li>
                 <li><strong>Calendar URLs:</strong> We store the Canvas ICS calendar URLs you provide to enable automatic syncing.</li>
             </ul>
             
-            <h2>How We Use Your Information</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">How We Use Your Information</h2>
             <p>We use the information we collect to:</p>
-            <ul>
+            <ul class="list-disc pl-6 mt-2 text-gray-700">
                 <li>Authenticate you with Google's services</li>
                 <li>Create and manage tasks in your Google Tasks based on your calendar events</li>
                 <li>Enable automatic background syncing of your calendar events to Google Tasks</li>
@@ -36,33 +55,33 @@
                 <li>Communicate with you about the service if necessary</li>
             </ul>
             
-            <h2>Data Storage and Security</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">Data Storage and Security</h2>
             <p>We store your information in a secure MongoDB database. We implement appropriate security measures to protect against unauthorized access, alteration, disclosure, or destruction of your personal information. However, no method of transmission over the Internet or electronic storage is 100% secure, so we cannot guarantee absolute security.</p>
             
-            <h2>Data Sharing and Disclosure</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">Data Sharing and Disclosure</h2>
             <p><strong>We do not share, transfer, or disclose Google user data to any third parties.</strong> We do not store your task information - we only store your Google OAuth refresh token to maintain authentication for the service. This token allows us to create and manage tasks in your Google Tasks account based on your Canvas calendar events when you use our application. We do not sell, rent, or lease your personal information to third parties.</p>
             
             <p>The only exceptions where disclosure might occur are:</p>
-            <ul>
+            <ul class="list-disc pl-6 mt-2 text-gray-700">
                 <li><strong>With Your Consent:</strong> We will share your personal information with third parties only when we have your explicit consent to do so.</li>
                 <li><strong>For Legal Reasons:</strong> We may share information if we have a good-faith belief that access, use, preservation, or disclosure of the information is reasonably necessary to comply with applicable laws, regulations, legal processes, or enforceable governmental requests.</li>
                 <li><strong>Service Providers:</strong> We may share limited information with trusted service providers who help us operate our application, such as hosting providers. These providers are bound by contractual obligations to keep personal information confidential and use it only for the purposes for which we disclose it to them.</li>
                 <li><strong>Business Transfers:</strong> If we are involved in a merger, acquisition, or sale of assets, we will continue to ensure the confidentiality of your personal information and give affected users notice before personal information is transferred or becomes subject to a different privacy policy.</li>
             </ul>
             
-            <h2>Third-Party Services</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">Third-Party Services</h2>
             <p>Our application integrates with the following third-party services:</p>
-            <ul>
+            <ul class="list-disc pl-6 mt-2 text-gray-700">
                 <li><strong>Google OAuth and Google Tasks API:</strong> We use these services to authenticate you and to create tasks in your Google account. Your use of Google services is subject to Google's Privacy Policy.</li>
                 <li><strong>MongoDB Atlas:</strong> We use MongoDB Atlas to store your information securely. MongoDB's use of your data is subject to their Privacy Policy.</li>
             </ul>
             
-            <h2>Data Retention</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">Data Retention</h2>
             <p>We retain your information for as long as your account is active or as needed to provide you services. If you wish to delete your account or request that we no longer use your information, please contact us.</p>
             
-            <h2>Your Rights</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">Your Rights</h2>
             <p>You have the right to:</p>
-            <ul>
+            <ul class="list-disc pl-6 mt-2 text-gray-700">
                 <li>Access the personal information we have about you</li>
                 <li>Request that your personal information be corrected or deleted</li>
                 <li>Object to our processing of your personal information</li>
@@ -70,23 +89,26 @@
                 <li>Request portability of your personal information</li>
             </ul>
             
-            <h2>Children's Privacy</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">Children's Privacy</h2>
             <p>Our application is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13.</p>
             
-            <h2>Changes to This Privacy Policy</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">Changes to This Privacy Policy</h2>
             <p>We may update this privacy policy from time to time. We will notify you of any changes by posting the new privacy policy on this page and updating the "Last Updated" date.</p>
             
-            <h2>Contact Us</h2>
+            <h2 class="text-xl font-semibold text-indigo-800 mt-6">Contact Us</h2>
             <p>If you have any questions about this Privacy Policy, please contact us at:</p>
-            <ul>
+            <ul class="list-disc pl-6 mt-2 text-gray-700">
                 <li>Email: themehulpatwari@gmail.com</li>
             </ul>
             
-            <p class="updated-date">Last Updated: April 8, 2025</p>
+            <p class="updated-date text-gray-500 italic mt-8">Last Updated: April 8, 2025</p>
             
             <div class="action-buttons">
-                <a href="{{ url_for('home') }}" class="action-btn home-btn">
-                    <i class="fas fa-home icon-space"></i>Back to Home
+                <a href="{{ url_for('home') }}" class="action-btn home-btn relative overflow-hidden">
+                    <span class="relative z-10 flex items-center justify-center">
+                        <i class="fas fa-home icon-space"></i>Back to Home
+                    </span>
+                    <div class="btn-shine-effect absolute inset-0 -z-10"></div>
                 </a>
             </div>
         </div>
@@ -95,5 +117,30 @@
     <footer class="page-footer">
         <p>&copy; Canvas to Google Tasks Sync | <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a> | <a href="{{ url_for('terms_of_service') }}">Terms of Service</a></p>
     </footer>
+    
+    <script>
+        // Button shine effect
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.action-btn').forEach(button => {
+                const shineEffect = button.querySelector('.btn-shine-effect');
+                
+                button.addEventListener('mousemove', (e) => {
+                    const rect = button.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    if (shineEffect) {
+                        shineEffect.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,255,255,0.3) 0%, transparent 50%)`;
+                    }
+                });
+                
+                button.addEventListener('mouseleave', () => {
+                    if (shineEffect) {
+                        shineEffect.style.background = 'transparent';
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>

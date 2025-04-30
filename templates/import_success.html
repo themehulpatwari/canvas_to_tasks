@@ -6,44 +6,69 @@
     <title>{{ 'Canvas Sync Successful' if is_sync else 'Canvas Import Successful' }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Aceternity UI Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(
+                circle at top center,
+                hsla(222, 80%, 60%, 0.1) 0%,
+                hsla(0, 0%, 100%, 0) 50%
+            ), 
+            #f9fafb;
+        }
+    </style>
 </head>
 <body>
-    <div class="container modern-container">
+    <!-- Aceternity background pattern -->
+    <div class="aceternity-pattern absolute inset-0 -z-10 h-full w-full bg-white [background:radial-gradient(125%_125%_at_50%_10%,#fff_40%,#63e_100%)]"></div>
+    
+    <div class="container modern-container backdrop-blur-sm bg-white/30">
         <div class="page-header">
-            <h1><i class="fas fa-calendar-alt icon-space"></i>Canvas to Tasks</h1>
+            <h1 class="tracking-tight"><i class="fas fa-calendar-alt icon-space"></i>Canvas to Tasks</h1>
             <p class="subtitle">Convert your Canvas events to Google Tasks</p>
         </div>
         
         <div class="card-container">
-            <div class="success-container modern-form">
+            <div class="success-container modern-form relative group">
+                <!-- Aceternity confetti success animation -->
+                <div class="success-confetti absolute inset-0 -z-10 overflow-hidden rounded-xl"></div>
+                
+                <!-- Glow effect on success card -->
+                <div class="success-glow absolute -inset-0.5 -z-10 rounded-xl bg-gradient-to-r from-green-400 to-emerald-500 opacity-0 blur-xl transition-all duration-500 group-hover:opacity-20"></div>
+                
                 <div class="success-icon">
-                    <i class="fas fa-check-circle"></i>
+                    <i class="fas fa-check-circle success-icon-animate"></i>
                 </div>
                 <h1 class="success-title">
                     {{ 'Canvas Sync Successful!' if is_sync else 'Canvas Import Successful!' }}
                 </h1>
                 
-                <p>{{ 'Your Canvas calendar events have been successfully synced with Google Tasks.' if is_sync else 'Your Canvas calendar events have been successfully imported to Google Tasks.' }}</p>
+                <p class="text-gray-600">{{ 'Your Canvas calendar events have been successfully synced with Google Tasks.' if is_sync else 'Your Canvas calendar events have been successfully imported to Google Tasks.' }}</p>
                 
-                <div class="success-details">
+                <div class="success-details backdrop-blur-sm bg-white/60 border border-gray-200">
                     <div class="detail-item">
-                        <i class="fas fa-tasks icon-space"></i>
+                        <i class="fas fa-tasks icon-space text-indigo-500"></i>
                         <span><strong>Tasklist:</strong> {{ tasklist_title }}</span>
                     </div>
                     <div class="detail-item">
-                        <i class="fas fa-calendar-plus icon-space"></i>
+                        <i class="fas fa-calendar-plus icon-space text-green-500"></i>
                         <span><strong>{{ 'New events added:' if is_sync else 'Events imported:' }}</strong> {{ task_count }}</span>
                     </div>
                 </div>
                 
-                <p class="next-steps">
+                <p class="next-steps backdrop-blur-sm bg-indigo-50/80 border border-indigo-100">
                     <i class="fas fa-info-circle icon-space"></i>
                     You can now view these Canvas assignments and events in your Google Tasks app or at 
-                    <a href="https://tasks.google.com/" target="_blank">tasks.google.com</a>.
+                    <a href="https://tasks.google.com/" target="_blank" class="text-indigo-600 hover:text-indigo-800 underline">tasks.google.com</a>.
                 </p>
                 
                 <!-- Error handling information section -->
-                <div class="error-handling-info">
+                <div class="error-handling-info backdrop-blur-sm bg-amber-50/80 border border-amber-100">
                     <p>
                         <i class="fas fa-exclamation-triangle icon-space"></i>
                         <strong>Having issues?</strong> If you encounter any errors, please try to:
@@ -55,8 +80,11 @@
                 </div>
                 
                 <div class="action-buttons">
-                    <a href="{{ url_for('home') }}" class="action-btn home-btn">
-                        <i class="fas fa-home icon-space"></i>Back to Home
+                    <a href="{{ url_for('home') }}" class="action-btn home-btn relative overflow-hidden">
+                        <span class="relative z-10 flex items-center justify-center">
+                            <i class="fas fa-home icon-space"></i>Back to Home
+                        </span>
+                        <div class="btn-shine-effect absolute inset-0 -z-10"></div>
                     </a>
                 </div>
             </div>
@@ -76,8 +104,92 @@
                 // Add confetti effect for success
                 const successIcon = document.querySelector('.success-icon');
                 successIcon.classList.add('success-animate');
+                
+                // Create confetti elements
+                const confettiContainer = document.querySelector('.success-confetti');
+                if (confettiContainer) {
+                    createConfetti(confettiContainer, 100);
+                }
+                
+                // Button shine effect
+                document.querySelectorAll('.action-btn').forEach(button => {
+                    const shineEffect = button.querySelector('.btn-shine-effect');
+                    
+                    button.addEventListener('mousemove', (e) => {
+                        const rect = button.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        
+                        if (shineEffect) {
+                            shineEffect.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,255,255,0.3) 0%, transparent 50%)`;
+                        }
+                    });
+                    
+                    button.addEventListener('mouseleave', () => {
+                        if (shineEffect) {
+                            shineEffect.style.background = 'transparent';
+                        }
+                    });
+                });
             }, 100);
         });
+        
+        // Function to create confetti particles
+        function createConfetti(container, count) {
+            const colors = ['#34D399', '#60A5FA', '#A78BFA', '#F472B6', '#FBBF24'];
+            
+            for (let i = 0; i < count; i++) {
+                const confetti = document.createElement('div');
+                const size = Math.random() * 10 + 5;
+                
+                confetti.style.position = 'absolute';
+                confetti.style.width = `${size}px`;
+                confetti.style.height = `${size}px`;
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : `${Math.random() * 4}px`;
+                confetti.style.opacity = Math.random() * 0.6 + 0.4;
+                
+                // Set initial position
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.top = `${Math.random() * 100}%`;
+                
+                // Add animation
+                confetti.style.animation = `confetti-fall ${Math.random() * 2 + 2}s ease-out forwards`;
+                
+                container.appendChild(confetti);
+            }
+        }
     </script>
+    
+    <style>
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-10px) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100px) rotate(720deg);
+                opacity: 0;
+            }
+        }
+        
+        .success-icon-animate {
+            animation: success-pop 0.6s ease-out forwards, success-glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes success-pop {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes success-glow {
+            0% { text-shadow: 0 0 5px rgba(52, 211, 153, 0.5); }
+            100% { text-shadow: 0 0 20px rgba(52, 211, 153, 0.8); }
+        }
+    </style>
 </body>
 </html>
