@@ -1,5 +1,7 @@
 import traceback
 import logging
+import time
+from ratelimit import limits, sleep_and_retry
 from pymongo.mongo_client import MongoClient
 from datetime import datetime
 from google.oauth2.credentials import Credentials
@@ -35,6 +37,10 @@ logger = logging.getLogger("one_time_sync")
 # MongoDB connection settings - using app_config values
 MONGO_URI = f"mongodb+srv://{app_config['MONGO_DB_USER']}:{app_config['MONGO_DB_PASS']}@{app_config['MONGO_DB_NAME']}.u1cau2u.mongodb.net/?retryWrites=true&w=majority&appName={app_config['MONGO_DB_NAME']}"
 
+# Rate limiting constants
+GOOGLE_API_CALLS_PER_MINUTE = 300  # Google Tasks API quota
+ICS_FETCH_CALLS_PER_MINUTE = 30    # Be gentle with ICS endpoints
+
 
 def connect_to_mongodb():
     """Establish connection to MongoDB and return db object"""
@@ -50,6 +56,8 @@ def connect_to_mongodb():
         return None
 
 
+@sleep_and_retry
+@limits(calls=GOOGLE_API_CALLS_PER_MINUTE, period=60)
 def refresh_user_tokens(user_auth):
     """Refresh the access token using the refresh token"""
     try:
@@ -78,6 +86,8 @@ def refresh_user_tokens(user_auth):
         return None
 
 
+@sleep_and_retry
+@limits(calls=ICS_FETCH_CALLS_PER_MINUTE, period=60)
 def sync_task_for_user(user_auth, user_link):
     """Sync tasks for a specific user"""
     try:
@@ -161,6 +171,9 @@ def run_one_time_sync():
                     )
                 else:
                     failed_count += 1
+                    
+                # Add a small delay between users to avoid overwhelming APIs
+                time.sleep(1)
             else:
                 logger.warning(f"No calendar link found for user {email}")
                 failed_count += 1

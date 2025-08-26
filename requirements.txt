@@ -37,6 +37,7 @@ python-dateutil==2.9.0.post0
 python-dotenv==1.1.0
 requests==2.32.3
 requests-oauthlib==2.0.0
+ratelimit==2.2.1
 rsa==4.9
 schedule==1.2.2
 setuptools==75.1.0
