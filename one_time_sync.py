@@ -1,9 +1,10 @@
 import traceback
 import logging
 import time
+import glob
 from ratelimit import limits, sleep_and_retry
 from pymongo.mongo_client import MongoClient
-from datetime import datetime
+from datetime import datetime, timedelta
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 import os
@@ -24,15 +25,50 @@ app_config = {
 }
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("one_time_sync.log"),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger("one_time_sync")
+def setup_logging():
+    """Setup logging with date/time named files and cleanup old logs"""
+    # Create logs directory if it doesn't exist
+    os.makedirs("logs", exist_ok=True)
+    
+    # Generate log filename with current date and time
+    current_time = datetime.now()
+    log_filename = f"logs/one_time_sync_{current_time.strftime('%Y%m%d_%H%M%S')}.log"
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_filename),
+            logging.StreamHandler()
+        ]
+    )
+    
+    # Clean up old log files
+    cleanup_old_logs()
+    
+    return logging.getLogger("one_time_sync")
+
+def cleanup_old_logs():
+    """Delete log files older than 10 days"""
+    try:
+        cutoff_date = datetime.now() - timedelta(days=10)
+        log_pattern = "logs/one_time_sync_*.log"
+        
+        for log_file in glob.glob(log_pattern):
+            try:
+                # Get file modification time
+                file_mtime = datetime.fromtimestamp(os.path.getmtime(log_file))
+                
+                if file_mtime < cutoff_date:
+                    os.remove(log_file)
+                    print(f"Deleted old log file: {log_file}")
+            except Exception as e:
+                print(f"Error deleting log file {log_file}: {str(e)}")
+                
+    except Exception as e:
+        print(f"Error during log cleanup: {str(e)}")
+
+logger = setup_logging()
 
 # MongoDB connection settings - using app_config values
 MONGO_URI = f"mongodb+srv://{app_config['MONGO_DB_USER']}:{app_config['MONGO_DB_PASS']}@{app_config['MONGO_DB_NAME']}.u1cau2u.mongodb.net/?retryWrites=true&w=majority&appName={app_config['MONGO_DB_NAME']}"
