@@ -38,32 +38,53 @@ def setup_logging():
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(log_filename),
+            logging.FileHandler(log_filename, mode='a'),
             logging.StreamHandler()
-        ]
+        ],
+        force=True
     )
+    
+    # Force immediate flushing for file handler
+    for handler in logging.getLogger().handlers:
+        if isinstance(handler, logging.FileHandler):
+            handler.setLevel(logging.INFO)
+            # Enable auto-flush
+            handler.stream.reconfigure(line_buffering=True)
     
     # Clean up old log files
     cleanup_old_logs()
     
-    return logging.getLogger("one_time_sync")
+    logger = logging.getLogger("one_time_sync")
+    
+    # Add custom flush method to ensure logs are written immediately
+    original_log = logger._log
+    def auto_flush_log(level, msg, args, **kwargs):
+        original_log(level, msg, args, **kwargs)
+        # Force flush all file handlers
+        for handler in logging.getLogger().handlers:
+            if isinstance(handler, logging.FileHandler):
+                handler.flush()
+    logger._log = auto_flush_log
+    
+    return logger
 
 def cleanup_old_logs():
-    """Delete log files older than 10 days"""
+    """Delete one_time_sync log files older than 10 days"""
     try:
         cutoff_date = datetime.now() - timedelta(days=10)
-        log_pattern = "logs/one_time_sync_*.log"
         
-        for log_file in glob.glob(log_pattern):
+        # Clean up one-time sync logs only
+        onetime_log_pattern = "logs/one_time_sync_*.log"
+        for log_file in glob.glob(onetime_log_pattern):
             try:
                 # Get file modification time
                 file_mtime = datetime.fromtimestamp(os.path.getmtime(log_file))
                 
                 if file_mtime < cutoff_date:
                     os.remove(log_file)
-                    print(f"Deleted old log file: {log_file}")
+                    print(f"Deleted old one-time sync log file: {log_file}")
             except Exception as e:
-                print(f"Error deleting log file {log_file}: {str(e)}")
+                print(f"Error deleting one-time sync log file {log_file}: {str(e)}")
                 
     except Exception as e:
         print(f"Error during log cleanup: {str(e)}")
