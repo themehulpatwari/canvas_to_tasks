@@ -1,0 +1,38 @@
+name: Daily Canvas Sync
+
+on:
+  schedule:
+    - cron: '0 5 * * *'  # 12:00 AM EST daily
+  workflow_dispatch:      # allows manual trigger from GitHub UI
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run one-time sync
+        env:
+          OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID }}
+          OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
+          FLASK_SECRET: ${{ secrets.FLASK_SECRET }}
+          MONGO_DB_PASS: ${{ secrets.MONGO_DB_PASS }}
+          MONGO_DB_USER: ${{ secrets.MONGO_DB_USER }}
+          MONGO_DB_NAME: ${{ secrets.MONGO_DB_NAME }}
+        run: python one_time_sync.py
