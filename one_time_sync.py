@@ -1,7 +1,10 @@
 import traceback
 import logging
+import time
+import glob
+from ratelimit import limits, sleep_and_retry
 from pymongo.mongo_client import MongoClient
-from datetime import datetime
+from datetime import datetime, timedelta
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 import os
@@ -22,18 +25,78 @@ app_config = {
 }
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("one_time_sync.log"),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger("one_time_sync")
+def setup_logging():
+    """Setup logging with date/time named files and cleanup old logs"""
+    # Create logs directory if it doesn't exist
+    os.makedirs("logs", exist_ok=True)
+    
+    # Generate log filename with current date and time
+    current_time = datetime.now()
+    log_filename = f"logs/one_time_sync_{current_time.strftime('%Y%m%d_%H%M%S')}.log"
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_filename, mode='a'),
+            logging.StreamHandler()
+        ],
+        force=True
+    )
+    
+    # Force immediate flushing for file handler
+    for handler in logging.getLogger().handlers:
+        if isinstance(handler, logging.FileHandler):
+            handler.setLevel(logging.INFO)
+            # Enable auto-flush
+            handler.stream.reconfigure(line_buffering=True)
+    
+    # Clean up old log files
+    cleanup_old_logs()
+    
+    logger = logging.getLogger("one_time_sync")
+    
+    # Add custom flush method to ensure logs are written immediately
+    original_log = logger._log
+    def auto_flush_log(level, msg, args, **kwargs):
+        original_log(level, msg, args, **kwargs)
+        # Force flush all file handlers
+        for handler in logging.getLogger().handlers:
+            if isinstance(handler, logging.FileHandler):
+                handler.flush()
+    logger._log = auto_flush_log
+    
+    return logger
+
+def cleanup_old_logs():
+    """Delete one_time_sync log files older than 10 days"""
+    try:
+        cutoff_date = datetime.now() - timedelta(days=10)
+        
+        # Clean up one-time sync logs only
+        onetime_log_pattern = "logs/one_time_sync_*.log"
+        for log_file in glob.glob(onetime_log_pattern):
+            try:
+                # Get file modification time
+                file_mtime = datetime.fromtimestamp(os.path.getmtime(log_file))
+                
+                if file_mtime < cutoff_date:
+                    os.remove(log_file)
+                    print(f"Deleted old one-time sync log file: {log_file}")
+            except Exception as e:
+                print(f"Error deleting one-time sync log file {log_file}: {str(e)}")
+                
+    except Exception as e:
+        print(f"Error during log cleanup: {str(e)}")
+
+logger = setup_logging()
 
 # MongoDB connection settings - using app_config values
 MONGO_URI = f"mongodb+srv://{app_config['MONGO_DB_USER']}:{app_config['MONGO_DB_PASS']}@{app_config['MONGO_DB_NAME']}.u1cau2u.mongodb.net/?retryWrites=true&w=majority&appName={app_config['MONGO_DB_NAME']}"
+
+# Rate limiting constants
+GOOGLE_API_CALLS_PER_MINUTE = 300  # Google Tasks API quota
+ICS_FETCH_CALLS_PER_MINUTE = 30    # Be gentle with ICS endpoints
 
 
 def connect_to_mongodb():
@@ -50,6 +113,8 @@ def connect_to_mongodb():
         return None
 
 
+@sleep_and_retry
+@limits(calls=GOOGLE_API_CALLS_PER_MINUTE, period=60)
 def refresh_user_tokens(user_auth):
     """Refresh the access token using the refresh token"""
     try:
@@ -78,6 +143,8 @@ def refresh_user_tokens(user_auth):
         return None
 
 
+@sleep_and_retry
+@limits(calls=ICS_FETCH_CALLS_PER_MINUTE, period=60)
 def sync_task_for_user(user_auth, user_link):
     """Sync tasks for a specific user"""
     try:
@@ -161,6 +228,9 @@ def run_one_time_sync():
                     )
                 else:
                     failed_count += 1
+                    
+                # Add a small delay between users to avoid overwhelming APIs
+                time.sleep(1)
             else:
                 logger.warning(f"No calendar link found for user {email}")
                 failed_count += 1

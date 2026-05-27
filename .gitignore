@@ -47,3 +47,6 @@ logs/
 
 # Local configuration
 instance/
+
+# Scripts
+*.sh
