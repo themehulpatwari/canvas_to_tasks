@@ -1,9 +1,9 @@
 name: Daily Canvas Sync
 
 on:
-  schedule:
-    - cron: '0 5 * * *'  # 12:00 AM EST daily
-  workflow_dispatch:      # allows manual trigger from GitHub UI
+  repository_dispatch:
+    types: [daily-sync]
+  workflow_dispatch:
 
 jobs:
   sync:
