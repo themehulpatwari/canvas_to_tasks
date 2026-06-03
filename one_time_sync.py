@@ -1,15 +1,16 @@
-import traceback
-import logging
 import time
-import glob
+import logging
 from ratelimit import limits, sleep_and_retry
 from pymongo.mongo_client import MongoClient
-from datetime import datetime, timedelta
+from datetime import datetime
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 import os
 from dotenv import load_dotenv
 from util import get_ics_events, sync_with_tasklist
+
+# Silence all logging (including from util.py) for the one-time sync run.
+logging.disable(logging.CRITICAL)
 
 load_dotenv()
 
@@ -24,73 +25,6 @@ app_config = {
     "MONGO_DB_NAME": os.getenv("MONGO_DB_NAME"),
 }
 
-# Configure logging
-def setup_logging():
-    """Setup logging with date/time named files and cleanup old logs"""
-    # Create logs directory if it doesn't exist
-    os.makedirs("logs", exist_ok=True)
-    
-    # Generate log filename with current date and time
-    current_time = datetime.now()
-    log_filename = f"logs/one_time_sync_{current_time.strftime('%Y%m%d_%H%M%S')}.log"
-    
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(log_filename, mode='a'),
-            logging.StreamHandler()
-        ],
-        force=True
-    )
-    
-    # Force immediate flushing for file handler
-    for handler in logging.getLogger().handlers:
-        if isinstance(handler, logging.FileHandler):
-            handler.setLevel(logging.INFO)
-            # Enable auto-flush
-            handler.stream.reconfigure(line_buffering=True)
-    
-    # Clean up old log files
-    cleanup_old_logs()
-    
-    logger = logging.getLogger("one_time_sync")
-    
-    # Add custom flush method to ensure logs are written immediately
-    original_log = logger._log
-    def auto_flush_log(level, msg, args, **kwargs):
-        original_log(level, msg, args, **kwargs)
-        # Force flush all file handlers
-        for handler in logging.getLogger().handlers:
-            if isinstance(handler, logging.FileHandler):
-                handler.flush()
-    logger._log = auto_flush_log
-    
-    return logger
-
-def cleanup_old_logs():
-    """Delete one_time_sync log files older than 10 days"""
-    try:
-        cutoff_date = datetime.now() - timedelta(days=10)
-        
-        # Clean up one-time sync logs only
-        onetime_log_pattern = "logs/one_time_sync_*.log"
-        for log_file in glob.glob(onetime_log_pattern):
-            try:
-                # Get file modification time
-                file_mtime = datetime.fromtimestamp(os.path.getmtime(log_file))
-                
-                if file_mtime < cutoff_date:
-                    os.remove(log_file)
-                    print(f"Deleted old one-time sync log file: {log_file}")
-            except Exception as e:
-                print(f"Error deleting one-time sync log file {log_file}: {str(e)}")
-                
-    except Exception as e:
-        print(f"Error during log cleanup: {str(e)}")
-
-logger = setup_logging()
-
 # MongoDB connection settings - using app_config values
 MONGO_URI = f"mongodb+srv://{app_config['MONGO_DB_USER']}:{app_config['MONGO_DB_PASS']}@{app_config['MONGO_DB_NAME']}.u1cau2u.mongodb.net/?retryWrites=true&w=majority&appName={app_config['MONGO_DB_NAME']}"
 
@@ -102,14 +36,11 @@ ICS_FETCH_CALLS_PER_MINUTE = 30    # Be gentle with ICS endpoints
 def connect_to_mongodb():
     """Establish connection to MongoDB and return db object"""
     try:
-        logger.info("Connecting to MongoDB...")
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
         client.admin.command('ping')  # Verify connection
         db = client.dotuser  # Use your actual database name
-        logger.info("MongoDB connection successful!")
         return db
-    except Exception as e:
-        logger.error(f"MongoDB connection failed: {str(e)}")
+    except Exception:
         return None
 
 
@@ -138,8 +69,7 @@ def refresh_user_tokens(user_auth):
             "client_id": user_auth.get('client_id'),
             "client_secret": user_auth.get('client_secret'),
         }
-    except Exception as e:
-        logger.error(f"Error refreshing tokens: {str(e)}")
+    except Exception:
         return None
 
 
@@ -148,79 +78,65 @@ def refresh_user_tokens(user_auth):
 def sync_task_for_user(user_auth, user_link):
     """Sync tasks for a specific user"""
     try:
-        # Get user information
-        email = user_auth.get('email')
         ics_url = user_link.get('ics_url')
-        
+
         if not ics_url:
-            logger.warning(f"No ICS URL found for user {email}")
             return False
-        
-        logger.info(f"Starting sync for user {email} with calendar {ics_url}")
-        
+
         # Refresh the user's tokens
         oauth_token = refresh_user_tokens(user_auth)
         if not oauth_token:
-            logger.error(f"Failed to refresh tokens for user {email}")
             return False
-            
+
         # Get calendar events
         events = get_ics_events(ics_url)
         if not events:
-            logger.warning(f"No events found in calendar for user {email}")
             return False
-            
+
         # Sync with Google Tasks - don't include past events
         result = sync_with_tasklist(oauth_token, events, include_past_events=False)
-        
-        if result.get('success'):
-            logger.info(f"Sync successful for {email}. Added {result.get('task_count')} tasks.")
-            return True
-        else:
-            logger.error(f"Sync failed for {email}: {result.get('error')}")
-            return False
-            
-    except Exception as e:
-        logger.error(f"Error during sync for user: {str(e)}")
-        logger.error(traceback.format_exc())
+
+        return bool(result.get('success'))
+
+    except Exception:
         return False
 
 
 def run_one_time_sync():
     """Perform a one-time sync for all users in the database"""
-    logger.info("Starting one-time sync for all users")
-    
     db = connect_to_mongodb()
     if db is None:
-        logger.error("Cannot connect to database. Aborting sync.")
+        print("Cannot connect to database. Aborting sync.")
         return
-    
+
     # Get all users with auth information and ics links
     try:
         users_auth = list(db.user_auth.find())
         users_links = list(db.user_links.find())
-        
+
         # Create a map of email to ics_url for quick lookup
         links_map = {user['email']: user for user in users_links}
-        
-        logger.info(f"Found {len(users_auth)} users with auth data and {len(users_links)} with calendar links")
-        
-        if len(users_auth) == 0:
-            logger.info("No users found to sync.")
+
+        total_users = len(users_auth)
+        if total_users == 0:
+            print("No users found to sync.")
             return
-        
+
+        print(f"Found {total_users} users to process")
+
         sync_count = 0
         failed_count = 0
-        
-        for user_auth in users_auth:
+
+        for index, user_auth in enumerate(users_auth, start=1):
+            print(f"Processing user {index}/{total_users}")
             email = user_auth.get('email')
             user_link = links_map.get(email)
-            
+
             if user_link:
                 success = sync_task_for_user(user_auth, user_link)
                 if success:
                     sync_count += 1
-                    
+
                     # Update last_sync timestamp in database
                     db.user_auth.update_one(
                         {"email": email},
@@ -228,24 +144,19 @@ def run_one_time_sync():
                     )
                 else:
                     failed_count += 1
-                    
+
                 # Add a small delay between users to avoid overwhelming APIs
                 time.sleep(1)
             else:
-                logger.warning(f"No calendar link found for user {email}")
                 failed_count += 1
-        
-        logger.info(f"One-time sync completed.")
-        logger.info(f"Successfully synced: {sync_count} users")
-        logger.info(f"Failed to sync: {failed_count} users")
-        logger.info(f"Total users processed: {len(users_auth)}")
-    
-    except Exception as e:
-        logger.error(f"Error during one-time sync: {str(e)}")
-        logger.error(traceback.format_exc())
+
+        print(f"Successfully synced: {sync_count} users")
+        print(f"Failed to sync: {failed_count} users")
+        print(f"Total users processed: {total_users}")
+
+    except Exception:
+        print("Error during one-time sync.")
 
 
 if __name__ == "__main__":
-    logger.info("Starting one-time sync process")
     run_one_time_sync()
-    logger.info("One-time sync process completed")
