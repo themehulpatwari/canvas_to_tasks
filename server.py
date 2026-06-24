@@ -92,9 +92,25 @@ if db is not None:
     except Exception as e:
         logger.error(f"Falling back to cookie sessions; Flask-Session init failed: {e}")
 
+# Trust one layer of reverse proxy (gunicorn/host) so request.remote_addr
+# reflects the real client IP for rate limiting and cookie handling.
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
+
 # CSRF protection for all state-changing POST forms (sync_calendar, delete_link).
 from flask_wtf.csrf import CSRFProtect
 csrf = CSRFProtect(app)
+
+# Rate limiting to curb abuse of the outbound-fetching sync endpoint and login.
+# In-memory storage is per-process; fine as a basic guard for a small deployment.
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+limiter = Limiter(key_func=get_remote_address, app=app, default_limits=[])
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    flash('Too many requests. Please wait a moment and try again.', 'error')
+    return redirect(url_for('home'))
 
 oauth = OAuth(app)
 
@@ -141,6 +157,7 @@ def home():
     return render_template('home.html', session=session.get("user"))
 
 @app.route('/login')
+@limiter.limit("20 per minute")
 def login():
     redirect_uri = url_for('auth', _external=True)
     return oauth.google.authorize_redirect(
@@ -221,6 +238,7 @@ def import_ics():
     return render_template('import_ics.html', **template_vars)
 
 @app.route('/sync_calendar', methods=['POST'])
+@limiter.limit("10 per minute")
 def sync_calendar():
     # Check if user is logged in
     if not session.get('user'):
