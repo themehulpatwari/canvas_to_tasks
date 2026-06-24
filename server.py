@@ -2,7 +2,7 @@ from flask import Flask, redirect, render_template, session, url_for, request, f
 from authlib.integrations.flask_client import OAuth
 import json
 import logging
-from util import get_ics_events, sync_with_tasklist
+from util import get_ics_events, sync_with_tasklist, encrypt_token
 from datetime import datetime
 import os
 from pymongo.mongo_client import MongoClient
@@ -165,9 +165,10 @@ def auth():
                 "last_updated": datetime.now()
             }
             
-            # Only include refresh_token in the update if it's present
+            # Only include refresh_token in the update if it's present.
+            # Encrypt it at rest so a DB compromise doesn't expose usable creds.
             if token.get('refresh_token'):
-                update_data["refresh_token"] = token.get('refresh_token')
+                update_data["refresh_token"] = encrypt_token(token.get('refresh_token'))
             
             # Store OAuth token information in the database
             db.user_auth.update_one(

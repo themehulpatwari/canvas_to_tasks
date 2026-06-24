@@ -1,3 +1,4 @@
+import os
 import re
 import socket
 import ipaddress
@@ -6,6 +7,7 @@ from urllib.parse import urljoin, urlparse
 from icalendar import Calendar
 from datetime import datetime, date, timezone
 import logging
+from cryptography.fernet import Fernet, InvalidToken
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google.oauth2.credentials import Credentials
@@ -94,6 +96,49 @@ def _fetch_ics(url):
         finally:
             resp.close()
     raise Exception("Too many redirects while fetching the ICS file")
+
+def _get_fernet():
+    """
+    Returns a Fernet built from TOKEN_ENC_KEY, or None if the key is unset or
+    invalid. When None, token encryption is a no-op so the app keeps working
+    until the key is provisioned (refresh tokens stay plaintext, as before).
+    """
+    key = os.getenv("TOKEN_ENC_KEY")
+    if not key:
+        return None
+    try:
+        return Fernet(key.encode() if isinstance(key, str) else key)
+    except Exception:
+        logging.error("TOKEN_ENC_KEY is set but invalid; refresh tokens will not be encrypted")
+        return None
+
+
+def encrypt_token(plaintext):
+    """Encrypts a refresh token for storage. No-op if no key is configured."""
+    if plaintext is None:
+        return None
+    fernet = _get_fernet()
+    if fernet is None:
+        return plaintext
+    return fernet.encrypt(plaintext.encode()).decode()
+
+
+def decrypt_token(value):
+    """
+    Decrypts a stored refresh token. Transparently passes through values that
+    were stored as plaintext before encryption was enabled (legacy rows), so
+    migration is seamless.
+    """
+    if value is None:
+        return None
+    fernet = _get_fernet()
+    if fernet is None:
+        return value
+    try:
+        return fernet.decrypt(value.encode()).decode()
+    except InvalidToken:
+        return value  # legacy plaintext value
+
 
 def refresh_oauth_token(oauth_token):
     """

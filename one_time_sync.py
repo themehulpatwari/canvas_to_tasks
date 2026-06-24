@@ -7,7 +7,7 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 import os
 from dotenv import load_dotenv
-from util import get_ics_events, sync_with_tasklist
+from util import get_ics_events, sync_with_tasklist, decrypt_token
 
 # Silence all logging (including from util.py) for the one-time sync run.
 logging.disable(logging.CRITICAL)
@@ -52,7 +52,7 @@ def refresh_user_tokens(user_auth):
         # Build the credentials object
         creds = Credentials(
             token=None,  # We don't have a valid token
-            refresh_token=user_auth.get('refresh_token'),
+            refresh_token=decrypt_token(user_auth.get('refresh_token')),
             token_uri="https://oauth2.googleapis.com/token",
             client_id=app_config['OAUTH_CLIENT_ID'],
             client_secret=app_config['OAUTH_CLIENT_SECRET'],
