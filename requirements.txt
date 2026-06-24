@@ -38,7 +38,7 @@ pymongo==4.11.3
 pyparsing==3.2.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.0
-requests==2.32.3
+requests==2.34.2
 requests-oauthlib==2.0.0
 ratelimit==2.2.1
 rsa==4.9
