@@ -220,9 +220,10 @@ def sync_calendar():
         result = sync_with_tasklist(session['user'], events, False)
         
         if result['success']:
-            return render_template('import_success.html', 
-                                  tasklist_title=result['tasklist_title'], 
+            return render_template('import_success.html',
+                                  tasklist_title=result['tasklist_title'],
                                   task_count=result['task_count'],
+                                  updated_count=result.get('updated_count', 0),
                                   is_sync=True)
         else:
             flash(f'Error syncing Canvas tasks: {result["error"]}', 'error')
