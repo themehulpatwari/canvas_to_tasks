@@ -11,6 +11,7 @@ dnspython==2.7.0
 Flask==3.1.0
 Flask-PyMongo==3.0.1
 Flask-Session==0.8.0
+Flask-WTF==1.2.1
 google==3.0.0
 google-api-core==2.21.0
 google-api-python-client==2.149.0

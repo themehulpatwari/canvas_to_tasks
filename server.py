@@ -92,6 +92,10 @@ if db is not None:
     except Exception as e:
         logger.error(f"Falling back to cookie sessions; Flask-Session init failed: {e}")
 
+# CSRF protection for all state-changing POST forms (sync_calendar, delete_link).
+from flask_wtf.csrf import CSRFProtect
+csrf = CSRFProtect(app)
+
 oauth = OAuth(app)
 
 oauth.register(
