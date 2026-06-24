@@ -23,7 +23,7 @@ app_config = {
     "FLASK_SECRET": os.getenv("FLASK_SECRET"),
     "FLASK_PORT": int(os.getenv("FLASK_PORT", 3000)),
     "MONGO_URI": os.getenv("MONGO_URI"),
-    "MONGO_DB_NAME": os.getenv("MONGO_DB_NAME", "dotuser"),
+    "MONGO_DB_NAME": os.getenv("MONGO_DB_NAME"),
 }
 # Configure logging
 logging.basicConfig(
@@ -43,8 +43,8 @@ MONGO_URI = app_config['MONGO_URI']
 
 def connect_to_mongodb():
     """Establish connection to MongoDB and return db object"""
-    if not MONGO_URI:
-        logger.error("MONGO_URI is not set; cannot connect to MongoDB")
+    if not MONGO_URI or not app_config['MONGO_DB_NAME']:
+        logger.error("MONGO_URI / MONGO_DB_NAME not set; cannot connect to MongoDB")
         return None
     try:
         logger.info("Connecting to MongoDB...")

@@ -21,7 +21,7 @@ app_config = {
     "FLASK_SECRET": os.getenv("FLASK_SECRET"),
     "FLASK_PORT": int(os.getenv("FLASK_PORT", 3000)),
     "MONGO_URI": os.getenv("MONGO_URI"),
-    "MONGO_DB_NAME": os.getenv("MONGO_DB_NAME", "dotuser"),
+    "MONGO_DB_NAME": os.getenv("MONGO_DB_NAME"),
 }
 
 # Full MongoDB connection string from the environment (set in CI secrets).
@@ -34,7 +34,7 @@ ICS_FETCH_CALLS_PER_MINUTE = 30    # Be gentle with ICS endpoints
 
 def connect_to_mongodb():
     """Establish connection to MongoDB and return db object"""
-    if not MONGO_URI:
+    if not MONGO_URI or not app_config['MONGO_DB_NAME']:
         return None
     try:
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)

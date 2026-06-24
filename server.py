@@ -29,7 +29,7 @@ app_config = {
     # Full MongoDB connection string (from Atlas). Keeps the cluster host,
     # username, and password out of source — they live only in the env.
     "MONGO_URI": os.getenv("MONGO_URI"),
-    "MONGO_DB_NAME": os.getenv("MONGO_DB_NAME", "dotuser"),
+    "MONGO_DB_NAME": os.getenv("MONGO_DB_NAME"),
 }
 
 app = Flask(__name__)
@@ -53,8 +53,8 @@ db = None
 mongo_uri = app_config['MONGO_URI']
 mongo_db_name = app_config['MONGO_DB_NAME']
 
-if not mongo_uri:
-    logger.error("MONGO_URI is not set; database features are disabled")
+if not mongo_uri or not mongo_db_name:
+    logger.error("MONGO_URI / MONGO_DB_NAME not set; database features are disabled")
 else:
     try:
         mongo_client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
