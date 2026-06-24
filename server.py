@@ -26,8 +26,9 @@ app_config = {
     "OAUTH_META_URL": "https://accounts.google.com/.well-known/openid-configuration",
     "FLASK_SECRET": os.getenv("FLASK_SECRET"),
     "FLASK_PORT": int(os.getenv("FLASK_PORT", 3000)),
-    "MONGO_DB_PASS": os.getenv("MONGO_DB_PASS"),
-    "MONGO_DB_USER": os.getenv("MONGO_DB_USER", "themehulpatwari"),
+    # Full MongoDB connection string (from Atlas). Keeps the cluster host,
+    # username, and password out of source — they live only in the env.
+    "MONGO_URI": os.getenv("MONGO_URI"),
     "MONGO_DB_NAME": os.getenv("MONGO_DB_NAME", "dotuser"),
 }
 
@@ -49,30 +50,28 @@ app.config.update(
 # MongoDB connection setup
 mongo_client = None
 db = None
-mongo_uri = None
+mongo_uri = app_config['MONGO_URI']
+mongo_db_name = app_config['MONGO_DB_NAME']
 
-try:
-    # Setup MongoDB connection
-    mongo_password = app_config['MONGO_DB_PASS']
-    mongo_user = app_config['MONGO_DB_USER']
-    mongo_db_name = app_config['MONGO_DB_NAME']
-    mongo_uri = f"mongodb+srv://{mongo_user}:{mongo_password}@dotuser.u1cau2u.mongodb.net/?retryWrites=true&w=majority&appName={mongo_db_name}"
-    
-    mongo_client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
-    
-    # Send a ping to confirm connection
-    mongo_client.admin.command('ping')
-    
-    # Set the database
-    db = mongo_client[mongo_db_name]
-    
-    # Log database connection status
-    if os.getenv("FLASK_ENV") == "development":
-        db_list = mongo_client.list_database_names()
-        print(f"Connected to MongoDB. Available databases: {', '.join(db_list)}")
-        
-except Exception as e:
-    print(f"MongoDB connection failed: {e}")
+if not mongo_uri:
+    logger.error("MONGO_URI is not set; database features are disabled")
+else:
+    try:
+        mongo_client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
+
+        # Send a ping to confirm connection
+        mongo_client.admin.command('ping')
+
+        # Set the database
+        db = mongo_client[mongo_db_name]
+
+        # Log database connection status
+        if os.getenv("FLASK_ENV") == "development":
+            db_list = mongo_client.list_database_names()
+            logger.info(f"Connected to MongoDB. Available databases: {', '.join(db_list)}")
+
+    except Exception as e:
+        logger.error(f"MongoDB connection failed: {e}")
 
 # Store sessions server-side (in MongoDB) instead of in the client cookie, so
 # the OAuth token (incl. the long-lived refresh token) never leaves the server.

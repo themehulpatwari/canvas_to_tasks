@@ -20,13 +20,12 @@ app_config = {
     "OAUTH_META_URL": "https://accounts.google.com/.well-known/openid-configuration",
     "FLASK_SECRET": os.getenv("FLASK_SECRET"),
     "FLASK_PORT": int(os.getenv("FLASK_PORT", 3000)),
-    "MONGO_DB_PASS": os.getenv("MONGO_DB_PASS"),
-    "MONGO_DB_USER": os.getenv("MONGO_DB_USER"),
-    "MONGO_DB_NAME": os.getenv("MONGO_DB_NAME"),
+    "MONGO_URI": os.getenv("MONGO_URI"),
+    "MONGO_DB_NAME": os.getenv("MONGO_DB_NAME", "dotuser"),
 }
 
-# MongoDB connection settings - using app_config values
-MONGO_URI = f"mongodb+srv://{app_config['MONGO_DB_USER']}:{app_config['MONGO_DB_PASS']}@{app_config['MONGO_DB_NAME']}.u1cau2u.mongodb.net/?retryWrites=true&w=majority&appName={app_config['MONGO_DB_NAME']}"
+# Full MongoDB connection string from the environment (set in CI secrets).
+MONGO_URI = app_config['MONGO_URI']
 
 # Rate limiting constants
 GOOGLE_API_CALLS_PER_MINUTE = 300  # Google Tasks API quota
@@ -35,10 +34,12 @@ ICS_FETCH_CALLS_PER_MINUTE = 30    # Be gentle with ICS endpoints
 
 def connect_to_mongodb():
     """Establish connection to MongoDB and return db object"""
+    if not MONGO_URI:
+        return None
     try:
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
         client.admin.command('ping')  # Verify connection
-        db = client.dotuser  # Use your actual database name
+        db = client[app_config['MONGO_DB_NAME']]
         return db
     except Exception:
         return None
