@@ -41,6 +41,7 @@
         <div class="card-container">
             <div class="form-container modern-form">
                 <form method="POST" action="{{ url_for('sync_calendar') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="form-group">
                         <label for="ics_url">
                             <i class="fas fa-link icon-space"></i>Canvas Calendar URL (ICS format)
@@ -79,7 +80,7 @@
         <p>&copy; Canvas to Google Tasks Sync | <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a> | <a href="{{ url_for('terms_of_service') }}">Terms of Service</a></p>
     </footer>
 
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         // Add subtle animation to form elements when page loads
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {

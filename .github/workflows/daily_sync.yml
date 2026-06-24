@@ -32,8 +32,8 @@ jobs:
           OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID }}
           OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
           FLASK_SECRET: ${{ secrets.FLASK_SECRET }}
-          MONGO_DB_PASS: ${{ secrets.MONGO_DB_PASS }}
-          MONGO_DB_USER: ${{ secrets.MONGO_DB_USER }}
+          MONGO_URI: ${{ secrets.MONGO_URI }}
           MONGO_DB_NAME: ${{ secrets.MONGO_DB_NAME }}
+          TOKEN_ENC_KEY: ${{ secrets.TOKEN_ENC_KEY }}
           PYTHONUNBUFFERED: '1'
         run: python -u one_time_sync.py

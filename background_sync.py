@@ -12,7 +12,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import os
 from dotenv import load_dotenv
-from util import get_ics_events, sync_with_tasklist
+from util import get_ics_events, sync_with_tasklist, decrypt_token
 
 load_dotenv()
 
@@ -22,8 +22,7 @@ app_config = {
     "OAUTH_META_URL": "https://accounts.google.com/.well-known/openid-configuration",
     "FLASK_SECRET": os.getenv("FLASK_SECRET"),
     "FLASK_PORT": int(os.getenv("FLASK_PORT", 3000)),
-    "MONGO_DB_PASS": os.getenv("MONGO_DB_PASS"),
-    "MONGO_DB_USER": os.getenv("MONGO_DB_USER"),
+    "MONGO_URI": os.getenv("MONGO_URI"),
     "MONGO_DB_NAME": os.getenv("MONGO_DB_NAME"),
 }
 # Configure logging
@@ -37,18 +36,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger("background_sync")
 
-# MongoDB connection settings - using app_config values
-MONGO_URI = f"mongodb+srv://{app_config['MONGO_DB_USER']}:{app_config['MONGO_DB_PASS']}@{app_config['MONGO_DB_NAME']}.u1cau2u.mongodb.net/?retryWrites=true&w=majority&appName={app_config['MONGO_DB_NAME']}"
+# Full MongoDB connection string from the environment.
+MONGO_URI = app_config['MONGO_URI']
 
 
 
 def connect_to_mongodb():
     """Establish connection to MongoDB and return db object"""
+    if not MONGO_URI or not app_config['MONGO_DB_NAME']:
+        logger.error("MONGO_URI / MONGO_DB_NAME not set; cannot connect to MongoDB")
+        return None
     try:
         logger.info("Connecting to MongoDB...")
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
         client.admin.command('ping')  # Verify connection
-        db = client.dotuser  # Use your actual database name
+        db = client[app_config['MONGO_DB_NAME']]
         logger.info("MongoDB connection successful!")
         return db
     except Exception as e:
@@ -62,7 +64,7 @@ def refresh_user_tokens(user_auth):
         # Build the credentials object
         creds = Credentials(
             token=None,  # We don't have a valid token
-            refresh_token=user_auth.get('refresh_token'),
+            refresh_token=decrypt_token(user_auth.get('refresh_token')),
             token_uri="https://oauth2.googleapis.com/token",
             client_id= app_config['OAUTH_CLIENT_ID'],
             client_secret= app_config['OAUTH_CLIENT_SECRET'],
