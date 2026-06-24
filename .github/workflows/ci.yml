@@ -1,0 +1,35 @@
+name: CI
+
+# Runs on every pull request (including Dependabot's) and on pushes to main.
+# A green check means dependencies install cleanly and the app boots; a red X
+# means something is broken — so for a dependency PR, green = safe to merge.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        # Fails the check if requirements.txt can't be resolved/installed
+        # (e.g. conflicting version pins).
+        run: pip install -r requirements.txt
+
+      - name: Byte-compile all modules
+        run: python -m py_compile server.py util.py one_time_sync.py background_sync.py migrate_encrypt_tokens.py
+
+      - name: Boot smoke test
+        # Importing the modules wires up the whole app (Flask, CSRF, limiter,
+        # sessions, OAuth client). It runs without secrets thanks to graceful
+        # degradation, so a green result means nothing broke at import time.
+        run: python -c "import server, util, one_time_sync, background_sync; print('app boots OK')"

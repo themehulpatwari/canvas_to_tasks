@@ -1,20 +1,14 @@
 version: 2
 updates:
-  # Python dependencies (requirements.txt)
+  # Python dependencies (requirements.txt). Individual PRs (not grouped) so the
+  # CI smoke test gives each bump its own pass/fail signal — green means safe.
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
     labels:
       - "dependencies"
-    groups:
-      # Collapse all minor/patch bumps into a single weekly PR. Major bumps are
-      # left out of the group so they arrive as individual, reviewable PRs.
-      python-minor-patch:
-        update-types:
-          - "minor"
-          - "patch"
 
   # GitHub Actions used in workflows
   - package-ecosystem: "github-actions"
@@ -23,8 +17,3 @@ updates:
       interval: "weekly"
     labels:
       - "dependencies"
-    groups:
-      actions-minor-patch:
-        update-types:
-          - "minor"
-          - "patch"
