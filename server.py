@@ -1,8 +1,9 @@
-from flask import Flask, redirect, render_template, session, url_for, request, flash
+from flask import Flask, redirect, render_template, session, url_for, request, flash, g
 from authlib.integrations.flask_client import OAuth
 import json
 import logging
-from util import get_ics_events, sync_with_tasklist, encrypt_token
+import secrets
+from util import get_ics_events, sync_with_tasklist, encrypt_token, decrypt_token, revoke_google_token
 from datetime import datetime
 import os
 from pymongo.mongo_client import MongoClient
@@ -129,6 +130,45 @@ def ratelimit_handler(e):
     flash('Too many requests. Please wait a moment and try again.', 'error')
     return redirect(url_for('home'))
 
+
+# --- Security response headers (CSP, clickjacking, HSTS, etc.) ---
+# A fresh per-request nonce authorizes our inline <script> blocks so the CSP
+# can forbid all other inline script (the main XSS lever) without unsafe-inline.
+@app.before_request
+def _set_csp_nonce():
+    g.csp_nonce = secrets.token_urlsafe(16)
+
+
+@app.context_processor
+def _inject_csp_nonce():
+    return {'csp_nonce': lambda: getattr(g, 'csp_nonce', '')}
+
+
+@app.after_request
+def _set_security_headers(response):
+    nonce = getattr(g, 'csp_nonce', '')
+    csp = (
+        "default-src 'self'; "
+        f"script-src 'self' 'nonce-{nonce}'; "
+        "style-src 'self' https://cdnjs.cloudflare.com; "
+        "font-src 'self' https://cdnjs.cloudflare.com; "
+        "img-src 'self' https://*.googleusercontent.com data:; "
+        "connect-src 'self'; "
+        "base-uri 'self'; "
+        "form-action 'self'; "
+        "frame-ancestors 'none'; "
+        "object-src 'none'"
+    )
+    response.headers['Content-Security-Policy'] = csp
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    # HSTS only over HTTPS (prod), never in local http development.
+    if not _is_dev:
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
+
+
 oauth = OAuth(app)
 
 oauth.register(
@@ -219,7 +259,47 @@ def auth():
 
 @app.route('/logout')
 def logout():
-    session.pop('user', None)
+    # Clear the whole server-side session, not just the user key.
+    session.clear()
+    return redirect(url_for('home'))
+
+@app.route('/disconnect', methods=['POST'])
+def disconnect():
+    """
+    Full account disconnect: revoke the Google grant and delete all stored
+    data (refresh token + saved calendar link), so background sync stops and
+    no credentials remain. This is the user-facing 'delete my data' control.
+    """
+    if not session.get('user'):
+        flash('Please log in to disconnect your account', 'error')
+        return redirect(url_for('home'))
+
+    user_email = session.get('user', {}).get('userinfo', {}).get('email')
+
+    # Revoke the Google authorization using the stored refresh token if we have
+    # one, otherwise fall back to the session's access token.
+    revoke_value = session.get('user', {}).get('access_token')
+    if user_email and db is not None:
+        try:
+            auth_row = db.user_auth.find_one({"email": user_email})
+            if auth_row and auth_row.get('refresh_token'):
+                revoke_value = decrypt_token(auth_row.get('refresh_token'))
+        except Exception as e:
+            logger.error(f"MongoDB error reading auth for revoke: {e}")
+    revoke_google_token(revoke_value)
+
+    # Delete all stored data for this user.
+    if user_email and db is not None:
+        try:
+            db.user_auth.delete_one({"email": user_email})
+            db.user_links.delete_one({"email": user_email})
+        except Exception as e:
+            logger.error(f"MongoDB error during disconnect: {e}")
+            flash(GENERIC_DB_ERROR, 'error')
+            return redirect(url_for('home'))
+
+    session.clear()
+    flash('Your account has been disconnected and your data deleted.', 'info')
     return redirect(url_for('home'))
 
 @app.route('/import_ics', methods=['GET'])

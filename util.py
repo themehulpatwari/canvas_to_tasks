@@ -140,6 +140,26 @@ def decrypt_token(value):
         return value  # legacy plaintext value
 
 
+def revoke_google_token(token):
+    """
+    Revokes a Google OAuth grant. Revoking the refresh token invalidates the
+    whole authorization. Best-effort: returns True on success, False otherwise.
+    """
+    if not token:
+        return False
+    try:
+        resp = requests.post(
+            "https://oauth2.googleapis.com/revoke",
+            params={'token': token},
+            headers={'content-type': 'application/x-www-form-urlencoded'},
+            timeout=HTTP_TIMEOUT,
+        )
+        return resp.status_code == 200
+    except Exception as e:
+        logging.error(f"Failed to revoke Google token: {e}")
+        return False
+
+
 def refresh_oauth_token(oauth_token):
     """
     Attempts to refresh an expired OAuth token.

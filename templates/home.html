@@ -137,6 +137,15 @@
                             </form>
                         </div>
                         {% endif %}
+
+                        <div class="disconnect-container">
+                            <form id="disconnect-form" method="POST" action="{{ url_for('disconnect') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="delete-btn">
+                                    <i class="fas fa-user-slash icon-space"></i>Disconnect &amp; delete my data
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -158,12 +167,22 @@
         <p>&copy; Canvas to Google Tasks Sync | <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a> | <a href="{{ url_for('terms_of_service') }}">Terms of Service</a></p>
     </footer>
 
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         // Add subtle animation to form elements when page loads
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {
                 document.querySelector('.card-container').classList.add('visible');
             }, 100);
+
+            // Confirm before the destructive disconnect/delete action.
+            var disconnectForm = document.getElementById('disconnect-form');
+            if (disconnectForm) {
+                disconnectForm.addEventListener('submit', function(e) {
+                    if (!confirm('This revokes access to your Google account and deletes all your stored data. Continue?')) {
+                        e.preventDefault();
+                    }
+                });
+            }
         });
     </script>
 </body>
