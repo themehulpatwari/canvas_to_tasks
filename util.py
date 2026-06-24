@@ -1,3 +1,4 @@
+import re
 import requests
 from icalendar import Calendar
 from datetime import datetime, date, timezone
@@ -190,7 +191,13 @@ def get_ics_events(ics_url: str) -> list[dict]:
                 "start": component.get('dtstart').dt if component.get('dtstart') else None,
                 "end": component.get('dtend').dt if component.get('dtend') else None,
                 "location": str(component.get('location')) if component.get('location') else None,
-                "description": str(component.get('description')) if component.get('description') else None
+                "description": str(component.get('description')) if component.get('description') else None,
+                # Stable identity for upsert matching. Canvas emits a UID like
+                # "event-assignment-1813708" that does NOT change when the due
+                # date moves, so it is the correct dedup key. recurrence_id
+                # distinguishes individually-edited instances of a series.
+                "uid": str(component.get('uid')) if component.get('uid') else None,
+                "recurrence_id": str(component.get('recurrence-id')) if component.get('recurrence-id') else None,
             }
                 
             events.append(event)
@@ -325,23 +332,104 @@ def insert_into_tasklist(oauth_token, events, include_past_events=True):
             "error": str(err)
         }
 
+# Notes field length cap (Google Tasks has an undocumented limit ~8000 chars).
+NOTES_LIMIT = 8000
+
+# Marker we embed in a task's notes to carry the source event's stable id.
+# Google Tasks has no custom-metadata field, so this is how a synced task
+# identifies itself on the next run. Example: [ctt-uid:event-assignment-1813708]
+_UID_MARKER_RE = re.compile(r'\[ctt-uid:([^\]]+)\]')
+
+
+def event_key(event):
+    """
+    Builds the stable identity for an event: its ICS UID, plus the
+    recurrence-id when the event is a modified instance of a series.
+    Returns None when the feed provides no UID (caller falls back to title).
+    """
+    uid = event.get('uid')
+    if not uid:
+        return None
+    rid = event.get('recurrence_id')
+    return f'{uid}::{rid}' if rid else uid
+
+
+def extract_uid(notes):
+    """Returns the embedded ctt-uid marker value from a task's notes, or None."""
+    if not notes:
+        return None
+    match = _UID_MARKER_RE.search(notes)
+    return match.group(1) if match else None
+
+
+def with_uid_marker(text, key):
+    """
+    Appends the [ctt-uid:<key>] marker to notes text, truncating the body if
+    needed so the whole thing (marker included) stays within NOTES_LIMIT and
+    the marker is never the part that gets cut off. No-op if the text already
+    carries a marker or there is no key.
+    """
+    text = text or ''
+    if not key or extract_uid(text):
+        return text
+    marker = f'[ctt-uid:{key}]'
+    sep = '\n\n' if text else ''
+    budget = NOTES_LIMIT - len(marker) - len(sep)
+    if len(text) > budget:
+        text = text[:max(0, budget - 3)] + '...'
+        sep = '\n\n'
+    return f'{text}{sep}{marker}'
+
+
+def _due_date_part(due_str):
+    """Parses an RFC3339 'due' string down to a date for comparison, or None."""
+    if not due_str:
+        return None
+    try:
+        return datetime.fromisoformat(due_str.replace('Z', '+00:00')).date()
+    except (ValueError, TypeError, AttributeError):
+        return None
+
+
+def _match_title(title):
+    """
+    Normalizes a title to the form a previously-inserted task would have been
+    stored under, so legacy (pre-UID) tasks adopt by title instead of being
+    duplicated. Mirrors the >500-char truncation validate_task applies before
+    insert, then trims/lowercases. Keeping this in sync with validate_task is
+    what makes the first-run migration line up for long titles.
+    """
+    title = title or ''
+    if len(title) > 500:
+        title = title[:497] + '...'
+    return title.strip().lower()
+
+
 def sync_with_tasklist(oauth_token, events, include_past_events=True):
     """
-    Syncs events with an existing 'dot_tasklist' in Google Tasks.
-    Adds only events that don't already exist in the tasklist.
-    
+    Upserts events into the 'dot_tasklist' in Google Tasks.
+
+    Each task is matched to its source event by the stable ICS UID embedded in
+    the task's notes (see with_uid_marker). On a match, the due date / title are
+    patched if they changed in Canvas (e.g. an assignment was rescheduled). With
+    no match, the event is inserted as a new task. Tasks created before UID
+    embedding existed are adopted on a one-time normalized-title match and then
+    tagged, so existing users don't get everything duplicated.
+
     Args:
         oauth_token (dict): OAuth token from Google authentication
         events (list): A list of event dictionaries
-        include_past_events (bool): Whether to include events with end dates in the past
-    
+        include_past_events (bool): Whether to insert events whose due date is in
+            the past. Updates to already-tracked tasks happen regardless, so a
+            date that slips into the past is still corrected.
+
     Returns:
-        dict: Information about the sync operation including new task count
+        dict: Counts of added / updated / skipped tasks for the sync operation.
     """
     try:
         # Get an authenticated service with token refresh handling
         service, updated_token = get_tasks_service(oauth_token)
-        
+
         # Find the dot_tasklist
         tasklists = service.tasklists().list().execute()
         dot_tasklist_id = None
@@ -349,7 +437,7 @@ def sync_with_tasklist(oauth_token, events, include_past_events=True):
             if tasklist['title'] == 'dot_tasklist':
                 dot_tasklist_id = tasklist['id']
                 break
-        
+
         # If dot_tasklist doesn't exist, create it
         if not dot_tasklist_id:
             tasklist = {'title': 'dot_tasklist'}
@@ -361,7 +449,7 @@ def sync_with_tasklist(oauth_token, events, include_past_events=True):
             # Make sure to get ALL tasks including completed and hidden ones
             existing_tasks = []
             page_token = None
-            
+
             while True:
                 tasks_result = service.tasks().list(
                     tasklist=dot_tasklist_id,
@@ -370,77 +458,115 @@ def sync_with_tasklist(oauth_token, events, include_past_events=True):
                     maxResults=100,
                     pageToken=page_token
                 ).execute()
-                
+
                 existing_tasks.extend(tasks_result.get('items', []))
-                
+
                 page_token = tasks_result.get('nextPageToken')
                 if not page_token:
                     break
-        
-        # Create a set of existing task titles (normalized)
-        existing_task_titles = set()
-        for task in existing_tasks:
-            if task.get('title'):
-                # Normalize the title by trimming whitespace and converting to lowercase
-                normalized_title = task.get('title', '').strip().lower()
-                existing_task_titles.add(normalized_title)
 
-        # Add events as tasks to the tasklist if they don't already exist
-        task_count = 0
+        # Index existing tasks two ways: by embedded UID (the real key) and by
+        # normalized title (legacy fallback to adopt pre-UID tasks once).
+        by_uid = {}
+        by_title = {}
+        for task in existing_tasks:
+            uid = extract_uid(task.get('notes'))
+            if uid:
+                by_uid[uid] = task
+            if task.get('title'):
+                by_title.setdefault(_match_title(task['title']), task)
+
+        added_count = 0
+        updated_count = 0
+        skipped_count = 0
         error_count = 0
         current_date = datetime.now(timezone.utc).date()
-        
+
         for event in events:
             try:
-                # Create the task structure first
+                key = event_key(event)
+                title = event['summary'] if event['summary'] is not None else 'Untitled Event'
+                description = event['description'] if event['description'] is not None else ''
+
+                # Desired due date (Canvas assignments only carry a start date)
+                due = None
+                if event['end']:
+                    due = convert_to_rfc3339(event['end'])
+                elif event['start']:
+                    due = convert_to_rfc3339(event['start'])
+
+                # Locate an existing task: prefer the UID match, otherwise adopt
+                # a legacy task that matches by title and has no marker yet.
+                existing = None
+                adopt_legacy = False
+                if key and key in by_uid:
+                    existing = by_uid[key]
+                else:
+                    candidate = by_title.get(_match_title(title))
+                    if candidate is not None and extract_uid(candidate.get('notes')) is None:
+                        existing = candidate
+                        adopt_legacy = True
+
+                if existing is not None:
+                    # UPDATE path — always allowed, even if the due date moved
+                    # into the past (correcting exactly that is the point).
+                    patch = {}
+                    if existing.get('title') != title:
+                        patch['title'] = title
+                    if due and _due_date_part(existing.get('due')) != _due_date_part(due):
+                        patch['due'] = due
+                    if adopt_legacy and key:
+                        # Tag the legacy task so future syncs match it by UID.
+                        patch['notes'] = with_uid_marker(existing.get('notes'), key)
+
+                    if patch:
+                        try:
+                            service.tasks().patch(
+                                tasklist=dot_tasklist_id, task=existing['id'], body=patch
+                            ).execute()
+                            existing.update(patch)
+                            updated_count += 1
+                            logging.info(f"Updated task: {title} due: {existing.get('due')}")
+                        except HttpError as patch_err:
+                            error_count += 1
+                            logging.error(f"Failed to update task '{title}': {str(patch_err)}")
+                    else:
+                        skipped_count += 1
+                        logging.info(f"No change for task: {title}")
+
+                    if key:
+                        by_uid[key] = existing
+                    continue
+
+                # INSERT path — only here do we honor include_past_events.
+                if not include_past_events and due:
+                    d = _due_date_part(due)
+                    if d is not None and d < current_date:
+                        skipped_count += 1
+                        continue
+
                 task = {
-                    'title': event['summary'] if event['summary'] is not None else 'Untitled Event',
-                    'notes': event['description'] if event['description'] is not None else '',
+                    'title': title,
+                    'notes': with_uid_marker(description, key),
                     'status': 'needsAction'
                 }
-                
-                # Set the due date
-                if event['end']:
-                    task['due'] = convert_to_rfc3339(event['end'])
-                    logging.debug(f"end {task['due']} {event['end']}")
-                elif event['start']:
-                    task['due'] = convert_to_rfc3339(event['start'])
-                    logging.debug(f"start {task['due']} {event['start']}")
-                
-                # Skip events that have already ended if include_past_events is False
-                if not include_past_events and 'due' in task:
-                    # Parse the RFC3339 date to compare with current date
-                    due_str = task['due']
-                    try:
-                        due_date = datetime.fromisoformat(due_str.replace('Z', '+00:00')).date()
-                        if due_date < current_date:
-                            continue
-                    except (ValueError, TypeError):
-                        # If there's an error parsing the date, include the event
-                        pass
+                if due:
+                    task['due'] = due
 
-                # Check if this task already exists using normalized title only
-                normalized_title = task['title'].strip().lower()
-                
-                # Check only by task name, ignoring date
-                if normalized_title not in existing_task_titles:
-                    
-                    # Validate and sanitize the task
-                    validated_task = validate_task(task)
-                    
-                    # Insert the task with error handling
-                    try:
-                        service.tasks().insert(tasklist=dot_tasklist_id, body=validated_task).execute()
-                        existing_task_titles.add(normalized_title)  # Add to set to prevent duplicates within this batch
-                        task_count += 1
-                        logging.info(f"Added task: {validated_task['title']} due: {validated_task.get('due')}")
-                    except HttpError as insert_err:
-                        error_count += 1
-                        logging.error(f"Failed to insert task '{validated_task['title']}': {str(insert_err)}")
-                        # Log additional details for debugging
-                        logging.debug(f"Task data: {validated_task}")
-                else:
-                    logging.info(f"Skipped duplicate task: {task['title']}")
+                validated_task = validate_task(task)
+                try:
+                    created = service.tasks().insert(
+                        tasklist=dot_tasklist_id, body=validated_task
+                    ).execute()
+                    if key:
+                        by_uid[key] = created
+                    by_title.setdefault(_match_title(title), created)
+                    added_count += 1
+                    logging.info(f"Added task: {validated_task['title']} due: {validated_task.get('due')}")
+                except HttpError as insert_err:
+                    error_count += 1
+                    logging.error(f"Failed to insert task '{validated_task['title']}': {str(insert_err)}")
+                    logging.debug(f"Task data: {validated_task}")
             except Exception as task_err:
                 error_count += 1
                 logging.error(f"Error processing event: {str(task_err)}")
@@ -449,19 +575,21 @@ def sync_with_tasklist(oauth_token, events, include_past_events=True):
             "success": True,
             "tasklist_id": dot_tasklist_id,
             "tasklist_title": 'dot_tasklist',
-            "task_count": task_count,
+            "task_count": added_count,
+            "updated_count": updated_count,
+            "skipped_count": skipped_count,
             "error_count": error_count,
             "is_sync": True,
             "oauth_token": updated_token  # Return the possibly refreshed token
         }
-        
+
         # If we had errors but some tasks were successful, still return success
-        if error_count > 0 and task_count > 0:
+        if error_count > 0 and (added_count > 0 or updated_count > 0):
             result["partial_success"] = True
-            result["message"] = f"Added {task_count} tasks with {error_count} errors"
-            
+            result["message"] = f"Added {added_count}, updated {updated_count}, with {error_count} errors"
+
         return result
-        
+
     except HttpError as err:
         logging.error(f"HTTP Error in sync_with_tasklist: {str(err)}")
         return {
