@@ -33,7 +33,17 @@ app_config = {
 app = Flask(__name__)
 
 app.secret_key = app_config['FLASK_SECRET']
-app.config['SESSION_COOKIE_NAME'] = 'my_session'
+
+# Harden the session cookie. Secure is enabled outside local development so
+# the cookie is never sent over plain HTTP; HttpOnly keeps it out of JS;
+# SameSite=Lax blocks it on cross-site POSTs (defence-in-depth with CSRF).
+_is_dev = os.getenv("FLASK_ENV") == "development"
+app.config.update(
+    SESSION_COOKIE_NAME='my_session',
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SECURE=not _is_dev,
+)
 
 # MongoDB connection setup
 mongo_client = None
@@ -61,6 +71,26 @@ try:
         
 except Exception as e:
     print(f"MongoDB connection failed: {e}")
+
+# Store sessions server-side (in MongoDB) instead of in the client cookie, so
+# the OAuth token (incl. the long-lived refresh token) never leaves the server.
+# The cookie then only carries a signed session id. Falls back to the default
+# (now hardened) cookie session if Mongo is unavailable.
+if db is not None:
+    try:
+        from flask_session import Session
+        app.config.update(
+            SESSION_TYPE='mongodb',
+            SESSION_MONGODB=mongo_client,
+            SESSION_MONGODB_DB=app_config['MONGO_DB_NAME'],
+            SESSION_MONGODB_COLLECT='sessions',
+            SESSION_PERMANENT=False,
+            SESSION_USE_SIGNER=True,
+        )
+        Session(app)
+        logger.info("Server-side sessions enabled (MongoDB backend)")
+    except Exception as e:
+        logger.error(f"Falling back to cookie sessions; Flask-Session init failed: {e}")
 
 oauth = OAuth(app)
 
