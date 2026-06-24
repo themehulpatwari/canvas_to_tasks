@@ -48,6 +48,7 @@ app.config.update(
 # MongoDB connection setup
 mongo_client = None
 db = None
+mongo_uri = None
 
 try:
     # Setup MongoDB connection
@@ -102,10 +103,26 @@ from flask_wtf.csrf import CSRFProtect
 csrf = CSRFProtect(app)
 
 # Rate limiting to curb abuse of the outbound-fetching sync endpoint and login.
-# In-memory storage is per-process; fine as a basic guard for a small deployment.
+# Use MongoDB as shared storage so limits are enforced across all gunicorn
+# workers/dynos (in-memory storage would be per-process). Falls back to
+# in-memory if Mongo is unavailable so the app still starts.
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-limiter = Limiter(key_func=get_remote_address, app=app, default_limits=[])
+
+_limiter_storage = mongo_uri if (db is not None and mongo_uri) else "memory://"
+try:
+    limiter = Limiter(
+        key_func=get_remote_address, app=app,
+        default_limits=[], storage_uri=_limiter_storage,
+    )
+    if _limiter_storage != "memory://":
+        logger.info("Rate limiting using shared MongoDB storage")
+except Exception as e:
+    logger.error(f"Rate-limit Mongo storage init failed ({e}); using in-memory")
+    limiter = Limiter(
+        key_func=get_remote_address, app=app,
+        default_limits=[], storage_uri="memory://",
+    )
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
