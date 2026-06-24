@@ -8,6 +8,13 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
+    groups:
+      # Collapse all minor/patch bumps into a single weekly PR. Major bumps are
+      # left out of the group so they arrive as individual, reviewable PRs.
+      python-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
 
   # GitHub Actions used in workflows
   - package-ecosystem: "github-actions"
@@ -16,3 +23,8 @@ updates:
       interval: "weekly"
     labels:
       - "dependencies"
+    groups:
+      actions-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
