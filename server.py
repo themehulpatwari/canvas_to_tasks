@@ -1,6 +1,7 @@
 from flask import Flask, redirect, render_template, session, url_for, request, flash
 from authlib.integrations.flask_client import OAuth
 import json
+import logging
 from util import get_ics_events, sync_with_tasklist
 from datetime import datetime
 import os
@@ -10,6 +11,13 @@ from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("server")
+
+# Generic message shown to users; details go to the server log only, never to
+# the client (raw exceptions can embed the Mongo connection string/password).
+GENERIC_DB_ERROR = "A database error occurred. Please try again later."
 
 app_config = {
     "OAUTH_CLIENT_ID": os.getenv("OAUTH_CLIENT_ID"),
@@ -83,8 +91,8 @@ def home():
                 else:
                     flash('You don\'t have any saved calendar link yet.', 'info')
             except Exception as e:
-                flash(f"Database error: {str(e)}", 'error')
-                print(f"MongoDB error: {str(e)}")
+                flash(GENERIC_DB_ERROR, 'error')
+                logger.error(f"MongoDB error: {e}")
         else:
             if session.get('user'):  # Only show this message if logged in
                 flash('No saved calendar link found. Please enter a new ICS URL.', 'info')
@@ -136,7 +144,7 @@ def auth():
 
             print(f"OAuth tokens saved for {user_email}")
         except Exception as e:
-            print(f"Error saving OAuth tokens: {str(e)}")
+            logger.error(f"Error saving OAuth tokens: {e}")
     
     return redirect(url_for('home'))
 
@@ -165,8 +173,8 @@ def import_ics():
             else:
                 flash('You don\'t have any saved calendar link yet.', 'info')
         except Exception as e:
-            flash(f"Database error: {str(e)}", 'error')
-            print(f"MongoDB error: {str(e)}")
+            flash(GENERIC_DB_ERROR, 'error')
+            logger.error(f"MongoDB error: {e}")
     else:
         flash('No saved calendar link found. Please enter a new ICS URL.', 'info')
     
@@ -213,8 +221,8 @@ def sync_calendar():
                 )
                 print("ICS URL saved successfully")
             except Exception as e:
-                flash(f"Database error: {str(e)}", 'error')
-                print(f"MongoDB error: {str(e)}")
+                flash(GENERIC_DB_ERROR, 'error')
+                logger.error(f"MongoDB error: {e}")
             
         # Always exclude past events by passing False
         result = sync_with_tasklist(session['user'], events, False)
@@ -226,11 +234,13 @@ def sync_calendar():
                                   updated_count=result.get('updated_count', 0),
                                   is_sync=True)
         else:
-            flash(f'Error syncing Canvas tasks: {result["error"]}', 'error')
+            logger.error(f"Sync failed for calendar: {result.get('error')}")
+            flash('We could not sync your calendar tasks. Please try again later.', 'error')
             return render_template('import_ics.html', saved_link=ics_url)
             
     except Exception as e:
-        flash(f'Error: {str(e)}', 'error')
+        logger.error(f"Error in sync_calendar: {e}")
+        flash('Something went wrong while processing your calendar. Please try again later.', 'error')
         return render_template('import_ics.html')
 
 @app.route('/privacy-policy')
@@ -262,8 +272,8 @@ def delete_link():
                 flash('No calendar link found to delete', 'warning')
                 
         except Exception as e:
-            flash(f"Database error: {str(e)}", 'error')
-            print(f"MongoDB error: {str(e)}")
+            flash(GENERIC_DB_ERROR, 'error')
+            logger.error(f"MongoDB error: {e}")
     
     return redirect(url_for('home'))
 
