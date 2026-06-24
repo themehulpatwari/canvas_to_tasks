@@ -1,5 +1,8 @@
 import re
+import socket
+import ipaddress
 import requests
+from urllib.parse import urljoin, urlparse
 from icalendar import Calendar
 from datetime import datetime, date, timezone
 import logging
@@ -10,6 +13,87 @@ from google.auth.exceptions import RefreshError
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# --- Outbound request safety limits ---
+HTTP_TIMEOUT = 15              # seconds, applied to all outbound calls
+ICS_MAX_BYTES = 10 * 1024 * 1024   # cap ICS download at 10 MB
+ICS_MAX_REDIRECTS = 5
+
+
+class UnsafeURLError(Exception):
+    """Raised when an ICS URL targets a non-public / disallowed destination."""
+
+
+def _is_public_ip(addr):
+    """True only for globally-routable addresses (blocks private/loopback/etc.)."""
+    ip = ipaddress.ip_address(addr)
+    return not (
+        ip.is_private or ip.is_loopback or ip.is_link_local
+        or ip.is_multicast or ip.is_reserved or ip.is_unspecified
+    )
+
+
+def _validate_public_url(url):
+    """
+    SSRF guard: only allow http(s) URLs whose host resolves *entirely* to
+    public IP addresses. Blocks localhost, private ranges, and cloud metadata
+    endpoints (e.g. 169.254.169.254, which is link-local).
+
+    Note: this resolves DNS and checks every returned address; there is a
+    residual DNS-rebinding window between this check and the actual connection,
+    which is an accepted trade-off for this app.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in ('http', 'https'):
+        raise UnsafeURLError(f"Unsupported URL scheme: {parsed.scheme or '(none)'}")
+    host = parsed.hostname
+    if not host:
+        raise UnsafeURLError("URL has no host")
+    try:
+        infos = socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)
+    except socket.gaierror as e:
+        raise UnsafeURLError(f"Could not resolve host: {host}") from e
+    addrs = {info[4][0] for info in infos}
+    if not addrs:
+        raise UnsafeURLError(f"Host did not resolve: {host}")
+    for addr in addrs:
+        if not _is_public_ip(addr):
+            raise UnsafeURLError(f"Host resolves to a non-public address: {addr}")
+
+
+def _fetch_ics(url):
+    """
+    Fetch an ICS feed safely: SSRF-validate the URL (and every redirect hop),
+    enforce a timeout, and cap the downloaded size. Returns raw bytes.
+    """
+    current = url
+    for _ in range(ICS_MAX_REDIRECTS + 1):
+        _validate_public_url(current)
+        resp = requests.get(
+            current, timeout=HTTP_TIMEOUT, allow_redirects=False, stream=True
+        )
+        try:
+            if resp.status_code in (301, 302, 303, 307, 308):
+                location = resp.headers.get('Location')
+                if not location:
+                    raise Exception("Redirect response missing Location header")
+                current = urljoin(current, location)
+                continue
+            if resp.status_code != 200:
+                raise Exception(
+                    f"Failed to fetch the ics file. Status code: {resp.status_code}"
+                )
+            chunks = []
+            total = 0
+            for chunk in resp.iter_content(8192):
+                total += len(chunk)
+                if total > ICS_MAX_BYTES:
+                    raise Exception("ICS file exceeds the maximum allowed size")
+                chunks.append(chunk)
+            return b''.join(chunks)
+        finally:
+            resp.close()
+    raise Exception("Too many redirects while fetching the ICS file")
 
 def refresh_oauth_token(oauth_token):
     """
@@ -39,7 +123,7 @@ def refresh_oauth_token(oauth_token):
             'grant_type': 'refresh_token'
         }
         
-        response = requests.post(refresh_url, data=payload)
+        response = requests.post(refresh_url, data=payload, timeout=HTTP_TIMEOUT)
         
         if response.status_code == 200:
             new_token_data = response.json()
@@ -173,14 +257,11 @@ def get_ics_events(ics_url: str) -> list[dict]:
         dict: A dictionary containing the parsed events.
     """
 
-    # Fetch the .ics file from the given URL
-    response = requests.get(ics_url)
-    
-    if response.status_code != 200:
-        raise Exception(f"Failed to fetch the ics file. Status code: {response.status_code}")
-    
+    # Fetch the .ics file safely (SSRF-validated, timed out, size-capped)
+    content = _fetch_ics(ics_url)
+
     # Parse the ICS content
-    cal = Calendar.from_ical(response.content)
+    cal = Calendar.from_ical(content)
     
     events = []
     
