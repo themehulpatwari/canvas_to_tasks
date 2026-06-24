@@ -91,13 +91,14 @@ def sync_task_for_user(user_auth, user_link):
     try:
         # Get user information
         email = user_auth.get('email')
-        ics_url = user_link.get('ics_url')
-        
+        ics_url = decrypt_token(user_link.get('ics_url'))
+
         if not ics_url:
             logger.warning(f"No ICS URL found for user {email}")
             return False
-        
-        logger.info(f"Starting sync for user {email} with calendar {ics_url}")
+
+        # Don't log the URL itself — it embeds a bearer token.
+        logger.info(f"Starting sync for user {email}")
         
         # Refresh the user's tokens
         oauth_token = refresh_user_tokens(user_auth)

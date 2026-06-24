@@ -79,7 +79,7 @@ def refresh_user_tokens(user_auth):
 def sync_task_for_user(user_auth, user_link):
     """Sync tasks for a specific user"""
     try:
-        ics_url = user_link.get('ics_url')
+        ics_url = decrypt_token(user_link.get('ics_url'))
 
         if not ics_url:
             return False

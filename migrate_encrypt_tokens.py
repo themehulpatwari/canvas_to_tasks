@@ -1,9 +1,11 @@
 """
-One-time migration: encrypt existing plaintext refresh tokens in user_auth.
+One-time migration: encrypt existing plaintext secrets at rest:
+  - user_auth.refresh_token  (Google OAuth refresh tokens)
+  - user_links.ics_url       (Canvas feed URLs, which embed a bearer token)
 
-The app encrypts refresh tokens on write (see util.encrypt_token), but rows
-written before encryption was enabled remain plaintext. Run this ONCE, after
-setting TOKEN_ENC_KEY in the environment, to encrypt those existing rows.
+The app encrypts these on write (see util.encrypt_token), but rows written
+before encryption was enabled remain plaintext. Run this ONCE, after setting
+TOKEN_ENC_KEY in the environment, to encrypt those existing rows.
 
 IMPORTANT: run it with the SAME TOKEN_ENC_KEY you set in Heroku / GitHub
 Actions. Encrypting with a different key would make the values undecryptable in
@@ -39,6 +41,33 @@ def _is_encrypted(value):
         return False
 
 
+def _encrypt_field(collection, field):
+    """Encrypt a single string field across every doc in a collection."""
+    scanned = encrypted_now = already = skipped = 0
+    for doc in collection.find({field: {"$exists": True, "$ne": None}}):
+        scanned += 1
+        value = doc.get(field)
+
+        if _is_encrypted(value):
+            already += 1
+            continue
+
+        ciphertext = encrypt_token(value)
+        # Safety: never write a value we can't read back to the original.
+        if decrypt_token(ciphertext) != value:
+            print(f"  ! round-trip check failed for {doc.get('email')!r}; skipping")
+            skipped += 1
+            continue
+
+        collection.update_one({"_id": doc["_id"]}, {"$set": {field: ciphertext}})
+        encrypted_now += 1
+
+    print(
+        f"{collection.name}.{field}: scanned={scanned} encrypted_now={encrypted_now} "
+        f"already_encrypted={already} skipped={skipped}"
+    )
+
+
 def main():
     if _get_fernet() is None:
         print("TOKEN_ENC_KEY is not set (or invalid). Aborting — nothing to do.")
@@ -51,32 +80,8 @@ def main():
     client.admin.command('ping')
     db = client[MONGO_DB_NAME]
 
-    scanned = encrypted_now = already = skipped = 0
-    for doc in db.user_auth.find({"refresh_token": {"$exists": True, "$ne": None}}):
-        scanned += 1
-        token = doc.get("refresh_token")
-
-        if _is_encrypted(token):
-            already += 1
-            continue
-
-        ciphertext = encrypt_token(token)
-        # Safety: never write a value we can't read back to the original.
-        if decrypt_token(ciphertext) != token:
-            print(f"  ! round-trip check failed for {doc.get('email')!r}; skipping")
-            skipped += 1
-            continue
-
-        db.user_auth.update_one(
-            {"_id": doc["_id"]},
-            {"$set": {"refresh_token": ciphertext}},
-        )
-        encrypted_now += 1
-
-    print(
-        f"user_auth: scanned={scanned} encrypted_now={encrypted_now} "
-        f"already_encrypted={already} skipped={skipped}"
-    )
+    _encrypt_field(db.user_auth, "refresh_token")
+    _encrypt_field(db.user_links, "ics_url")
 
 
 if __name__ == "__main__":

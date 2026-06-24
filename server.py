@@ -193,7 +193,7 @@ def home():
                 # Check if user has a saved ICS link
                 user_data = db.user_links.find_one({"email": user_email})
                 if user_data and user_data.get("ics_url"):
-                    saved_link = user_data.get("ics_url")
+                    saved_link = decrypt_token(user_data.get("ics_url"))
                 else:
                     flash('You don\'t have any saved calendar link yet.', 'info')
             except Exception as e:
@@ -363,12 +363,13 @@ def sync_calendar():
                     {"email": user_email},
                     {"$set": {
                         "email": user_email,
-                        "ics_url": ics_url,
+                        # Encrypt at rest — the feed URL embeds a bearer token.
+                        "ics_url": encrypt_token(ics_url),
                         "updated_at": datetime.now()
                     }},
                     upsert=True
                 )
-                print("ICS URL saved successfully")
+                logger.info("ICS URL saved successfully")
             except Exception as e:
                 flash(GENERIC_DB_ERROR, 'error')
                 logger.error(f"MongoDB error: {e}")
