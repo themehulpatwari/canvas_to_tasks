@@ -317,7 +317,7 @@ def import_ics():
             # Check if user has a saved ICS link
             user_data = db.user_links.find_one({"email": user_email})
             if user_data and user_data.get("ics_url"):
-                saved_link = user_data.get("ics_url")
+                saved_link = decrypt_token(user_data.get("ics_url"))
             else:
                 flash('You don\'t have any saved calendar link yet.', 'info')
         except Exception as e:
