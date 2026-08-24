@@ -161,10 +161,34 @@
                 </ol>
             </div>
         {% endif %}
+
+        <div class="open-source-section">
+            <h2><i class="fab fa-github icon-space"></i>Open Source</h2>
+            <p>Canvas to Tasks is a free, open source project released under the MIT license. The
+               entire codebase is on GitHub &mdash; read it, audit how your data is handled, open an
+               issue, or send a pull request. If it saves you time, a star is the easiest way to
+               support it.</p>
+            <div class="oss-actions">
+                <a class="oss-btn oss-btn-primary" href="https://github.com/themehulpatwari/canvas_to_tasks" target="_blank" rel="noopener noreferrer">
+                    <i class="fas fa-star icon-space"></i>Star on GitHub
+                </a>
+                <a class="oss-btn" href="https://github.com/themehulpatwari/canvas_to_tasks/blob/main/README.md" target="_blank" rel="noopener noreferrer">
+                    <i class="fas fa-code-branch icon-space"></i>Contribute
+                </a>
+                <a class="oss-btn" href="mailto:themehulpatwari@gmail.com?subject=Canvas%20to%20Tasks%20Feedback">
+                    <i class="fas fa-envelope icon-space"></i>Send Feedback
+                </a>
+            </div>
+        </div>
     </div>
 
     <footer class="page-footer">
         <p>&copy; Canvas to Google Tasks Sync | <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a> | <a href="{{ url_for('terms_of_service') }}">Terms of Service</a></p>
+        <p class="footer-links">
+            <a href="mailto:themehulpatwari@gmail.com?subject=Canvas%20to%20Tasks%20Feedback"><i class="fas fa-envelope icon-space"></i>Contact &amp; Feedback</a>
+            <a href="https://github.com/themehulpatwari/canvas_to_tasks" target="_blank" rel="noopener noreferrer"><i class="fab fa-github icon-space"></i>GitHub</a>
+        </p>
+        <p class="footer-oss">Free and open source (MIT) &mdash; <a href="https://github.com/themehulpatwari/canvas_to_tasks" target="_blank" rel="noopener noreferrer">star it</a> or contribute.</p>
     </footer>
 
     <script nonce="{{ csp_nonce() }}">
