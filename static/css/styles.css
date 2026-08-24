@@ -941,11 +941,6 @@ pre {
     gap: 20px;
 }
 
-.footer-oss {
-    color: #888;
-    font-size: 13px;
-}
-
 @media (max-width: 600px) {
     .open-source-section {
         padding: 20px;
