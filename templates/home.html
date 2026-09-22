@@ -11,7 +11,7 @@
     <div class="container modern-container">
         <div class="page-header">
             <h1><i class="fas fa-calendar-alt icon-space"></i>Canvas to Tasks</h1>
-            <p class="subtitle">Convert your Canvas and educational calendar events to Google Tasks</p>
+            <p class="subtitle">Convert your Canvas assignments into Google Tasks.</p>
         </div>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -30,48 +30,48 @@
         {% if not session %}
             <div class="card-container">
                 <div class="login-section modern-form">
-                    <p>You are not logged in. Click the button below to login with your Google account to start importing Canvas and other educational calendar events into your Google Tasks.</p>
+                    <p>Sign in with Google to get started.</p>
                     <a href="/login" class="login-btn modern-btn">
-                        <i class="fab fa-google icon-space"></i>Login with Google
+                        <i class="fab fa-google icon-space"></i>Sign in with Google
                     </a>
                 </div>
             </div>
             
             <!-- App explanation section - only shown when not logged in -->
             <div class="app-explanation">
-                <h2><i class="fas fa-info-circle icon-space"></i>What is Canvas to Tasks?</h2>
-                <p>Canvas to Tasks is a productivity tool designed to help students and educators stay organized by automatically converting your Canvas LMS assignments, deadlines, and events into manageable Google Tasks.</p>
+                <h2><i class="fas fa-info-circle icon-space"></i>What it does</h2>
+                <p>Paste your Canvas calendar link once and your assignments show up in Google Tasks with their due dates. It checks Canvas once a day and adds new assignments or updates changed due dates.</p>
                 
                 <div class="benefits-grid">
                     <div class="benefit-item">
                         <i class="fas fa-sync-alt benefit-icon"></i>
-                        <h3>Automatic Syncing</h3>
-                        <p>Connect once and keep your tasks updated automatically with your Canvas calendar.</p>
+                        <h3>Syncs daily</h3>
+                        <p>After you save your link, it checks Canvas once a day on its own.</p>
                     </div>
                     <div class="benefit-item">
                         <i class="fas fa-tasks benefit-icon"></i>
-                        <h3>Better Organization</h3>
-                        <p>Transform your academic calendar into actionable tasks in your Google account.</p>
+                        <h3>Keeps up with changes</h3>
+                        <p>If a due date moves, the task moves with it. No duplicates.</p>
                     </div>
                     <div class="benefit-item">
                         <i class="fas fa-bell benefit-icon"></i>
-                        <h3>Never Miss Deadlines</h3>
-                        <p>Get reminders and manage your assignments across all your devices with Google Tasks.</p>
+                        <h3>Shows up where you already look</h3>
+                        <p>Your assignments appear in Google Tasks and Google Calendar, on your phone and on the web.</p>
                     </div>
                     <div class="benefit-item">
                         <i class="fas fa-user-graduate benefit-icon"></i>
-                        <h3>Built for Students</h3>
-                        <p>Specifically designed for Canvas LMS users to improve academic productivity.</p>
+                        <h3>Your data</h3>
+                        <p>You can disconnect and delete everything at any time.</p>
                     </div>
                 </div>
                 
                 <div class="how-it-works">
-                    <h3><i class="fas fa-cogs icon-space"></i>How It Works:</h3>
+                    <h3><i class="fas fa-cogs icon-space"></i>Setup</h3>
                     <ol>
-                        <li>Login with your Google account</li>
-                        <li>Paste your Canvas Calendar feed URL (ICS format)</li>
-                        <li>Click "Sync with Tasks" to import your Canvas events</li>
-                        <li>View and manage your academic tasks in Google Tasks</li>
+                        <li>Sign in with Google.</li>
+                        <li>In Canvas, go to Calendar → Calendar Feed and copy the link.</li>
+                        <li>Paste it here and click Sync.</li>
+                        <li>Your assignments appear in a new list called "dot_tasklist" in Google Tasks. Tasks show the due date but not the time, since Google Tasks doesn't let apps set one.</li>
                     </ol>
                 </div>
             </div>
@@ -94,12 +94,12 @@
                     </div>
                     
                     <div class="form-section">
-                        <h3><i class="fas fa-file-import icon-space"></i>Import Canvas Calendar to Tasks</h3>
+                        <h3><i class="fas fa-file-import icon-space"></i>Your Canvas calendar</h3>
                         <form method="POST" action="{{ url_for('sync_calendar') }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="form-group">
                                 <label for="ics_url">
-                                    <i class="fas fa-link icon-space"></i>Canvas Calendar URL (ICS format)
+                                    <i class="fas fa-link icon-space"></i>Canvas calendar feed link
                                 </label>
                                 <div class="input-group">
                                     <input type="url" name="ics_url" id="ics_url" 
@@ -108,18 +108,18 @@
                                 </div>
                                 <div class="format-hint">
                                     <i class="fas fa-info-circle icon-space"></i>
-                                    <small>Find this in Canvas by going to Calendar → Calendar Feed → Copy Feed URL</small>
+                                    <small>In Canvas: Calendar → Calendar Feed → copy the link. Other .ics links work too.</small>
                                 </div>
                                 {% if saved_link %}
                                 <div class="saved-link-info">
                                     <i class="fas fa-check-circle icon-space"></i>
-                                    <small>You've already saved a calendar link. Edit above to update it.</small>
+                                    <small>Link saved. This syncs automatically every day to the "dot_tasklist" list in Google Tasks. Click Sync to run it now.</small>
                                 </div>
                                 {% endif %}
                             </div>
                             <div class="button-group">
-                                <button type="submit" class="sync-btn pulse-effect">
-                                    <i class="fas fa-sync-alt icon-space"></i>Sync with Tasks
+                                <button type="submit" class="sync-btn">
+                                    <i class="fas fa-sync-alt icon-space"></i>Sync now
                                 </button>
                                 <a href="/logout" class="logout-btn">
                                     <i class="fas fa-sign-out-alt icon-space"></i>Logout
@@ -153,21 +153,19 @@
             <div class="error-handling-info">
                 <p>
                     <i class="fas fa-exclamation-triangle icon-space"></i>
-                    <strong>Having issues?</strong> If you encounter any errors, please try to:
+                    <strong>Something not working?</strong>
                 </p>
                 <ol>
-                    <li>Logout and login again to refresh your authentication</li>
-                    <li>If problems persist, try clearing your browser cookies and then login again</li>
+                    <li>Log out and back in.</li>
+                    <li>If that doesn't fix it, clear your cookies and sign in again.</li>
                 </ol>
             </div>
         {% endif %}
 
         <div class="open-source-section">
             <h2><i class="fab fa-github icon-space"></i>Open Source</h2>
-            <p>Canvas to Tasks is a free, open source project released under the MIT license. The
-               entire codebase is on GitHub &mdash; read it, audit how your data is handled, open an
-               issue, or send a pull request. If it saves you time, a star is the easiest way to
-               support it.</p>
+            <p>Canvas to Tasks is free and open source. The code is on GitHub if you want to see how it
+               works or contribute.</p>
             <div class="oss-actions">
                 <a class="oss-btn oss-btn-primary" href="https://github.com/themehulpatwari/canvas_to_tasks" target="_blank" rel="noopener noreferrer">
                     <i class="fas fa-star icon-space"></i>Star on GitHub

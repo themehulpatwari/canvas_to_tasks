@@ -302,6 +302,11 @@ pre {
     text-align: center;
 }
 
+.disconnect-container {
+    margin-top: 12px;
+    text-align: center;
+}
+
 .delete-btn {
     background: linear-gradient(135deg, #9e9e9e, #757575);
     color: white;
