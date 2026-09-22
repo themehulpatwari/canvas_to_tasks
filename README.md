@@ -1,4 +1,6 @@
-# Calendar to Google Tasks Sync
+# Canvas to Tasks
+
+**Use it at [canvastotasks.win](https://canvastotasks.win)**
 
 A web application that allows users to sync their calendar events from Canvas and other educational platforms directly to Google Tasks. This tool helps students and educators manage their assignments, deadlines, and events by automatically converting them from iCal/ICS feeds into manageable tasks.
 
