@@ -5,7 +5,8 @@ import ipaddress
 import requests
 from urllib.parse import urljoin, urlparse
 from icalendar import Calendar
-from datetime import datetime, date, timezone
+from datetime import datetime, date, time as dt_time, timedelta, timezone
+from zoneinfo import ZoneInfo
 import logging
 from cryptography.fernet import Fernet, InvalidToken
 from googleapiclient.discovery import build
@@ -20,6 +21,17 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 HTTP_TIMEOUT = 15              # seconds, applied to all outbound calls
 ICS_MAX_BYTES = 10 * 1024 * 1024   # cap ICS download at 10 MB
 ICS_MAX_REDIRECTS = 5
+TZ_TIMEOUT = 5                 # keep the timezone lookup off the critical path
+TZ_MAX_BYTES = 512 * 1024      # the ENV blob sits near the top of the page
+
+# How far back to shift a due time when we can't determine the real timezone.
+# Google Tasks keeps only the date part of 'due', so a Canvas deadline that
+# Canvas publishes as a UTC instant (8pm Wednesday Eastern -> 2026-09-24T00:00Z)
+# otherwise reads as Thursday. 10 hours is the offset of the westernmost US
+# timezone, so shifting by it never lands a task *after* its real day; the
+# worst case is a deadline set between midnight and dawn showing a day early,
+# which is the safe direction to be wrong in.
+FALLBACK_SHIFT_HOURS = 10
 
 
 class UnsafeURLError(Exception):
@@ -271,47 +283,99 @@ def get_tasks_service(oauth_token):
         logging.error(f"Error creating Google Tasks service: {str(err)}")
         raise
 
-def convert_to_rfc3339(event_start):
+# Canvas embeds the institution's configured timezone in the ENV blob on its
+# login page, e.g. "TIMEZONE":"America/New_York".
+_TZ_RE = re.compile(r'"TIMEZONE":"([\w/+\-]{3,64})"')
+
+# Resolved timezones, keyed by host. One lookup per Canvas instance per process
+# instead of one per user.
+_tz_cache = {}
+
+
+def canvas_timezone(ics_url):
     """
-    Converts event_start (which can be a datetime.date or datetime.datetime)
-    to an RFC3339 formatted string.
-    Always sets time to 00:00:00 as Google Tasks only uses the date part.
+    Returns the IANA timezone of the Canvas instance serving this feed, or
+    None if it can't be determined.
 
+    Assignment due times are set in the institution's timezone, so that is what
+    decides which calendar day a due instant belongs to. The feed itself carries
+    no timezone at all -- no X-WR-TIMEZONE, no VTIMEZONE, no TZID -- so we read
+    it off the same host's login page instead.
     """
-    
-    if isinstance(event_start, datetime):
-        # Ensure the datetime is timezone aware; if not, assume UTC
-        # Reset time to midnight but keep the timezone
-        midnight = event_start.replace(hour=0, minute=0, second=0, microsecond=0)
-        if midnight.tzinfo is None:
-            midnight = midnight.replace(tzinfo=timezone.utc)
-        return midnight.isoformat()
+    host = urlparse(ics_url).hostname if ics_url else None
+    if not host:
+        return None
+    if host in _tz_cache:
+        return _tz_cache[host]
 
-
-    elif isinstance(event_start, date):
-        # Convert date to datetime at midnight UTC
-        event_datetime = datetime.combine(event_start, datetime.min.time(), timezone.utc)
-        return event_datetime.isoformat()
-    elif isinstance(event_start, str):
-        # Handle string inputs in ISO 8601 format
+    name = None
+    url = f'https://{host}/login/canvas'
+    try:
+        _validate_public_url(url)  # same SSRF guard the feed fetch uses
+        resp = requests.get(url, timeout=TZ_TIMEOUT, stream=True)
         try:
-            # Replace 'Z' with '+00:00' for UTC timezone as fromisoformat doesn't handle 'Z'
-            if event_start.endswith('Z'):
-                event_start = event_start[:-1] + '+00:00'
-            # Parse the string to datetime
-            event_datetime = datetime.fromisoformat(event_start)
-            # Reset time to midnight but keep the timezone
-            event_datetime = event_datetime.replace(hour=0, minute=0, second=0, microsecond=0)
+            chunks, total = [], 0
+            for chunk in resp.iter_content(8192):
+                chunks.append(chunk)
+                total += len(chunk)
+                if total >= TZ_MAX_BYTES:
+                    break
+        finally:
+            resp.close()
+        # Parsed regardless of status code: some hosts answer 404 with a page
+        # that still carries the blob.
+        match = _TZ_RE.search(b''.join(chunks).decode('utf-8', 'replace'))
+        if match:
+            ZoneInfo(match.group(1))  # reject anything that isn't a real zone
+            name = match.group(1)
+    except Exception as e:
+        logging.info(f"No timezone available from {host}: {type(e).__name__}")
 
-            # Ensure timezone is set
-            if event_datetime.tzinfo is None:
-                event_datetime = event_datetime.replace(tzinfo=timezone.utc)
-            return event_datetime.isoformat()
+    _tz_cache[host] = name
+    return name
+
+
+def is_timed(value):
+    """True for a due value that carries a real time (and so needs a timezone)."""
+    return isinstance(value, datetime) and value.tzinfo is not None
+
+
+def convert_to_rfc3339(event_start, tz=None):
+    """
+    Converts a due value (datetime.date, datetime.datetime, or ISO 8601 string)
+    to the RFC3339 string Google Tasks wants for 'due'.
+
+    Google Tasks keeps only the date part of this field, so the result is always
+    midnight UTC on the intended day and the whole job is picking that day.
+    All-day events already name one. Timed events arrive as UTC instants, which
+    is where the day can slip: convert into `tz` when we know it, otherwise fall
+    back to shifting (see FALLBACK_SHIFT_HOURS).
+    """
+    if isinstance(event_start, datetime):
+        local_date = _local_date(event_start, tz)
+    elif isinstance(event_start, date):
+        local_date = event_start  # all-day; already the right calendar day
+    elif isinstance(event_start, str):
+        try:
+            # fromisoformat doesn't accept a trailing 'Z' on older versions.
+            text = event_start[:-1] + '+00:00' if event_start.endswith('Z') else event_start
+            local_date = _local_date(datetime.fromisoformat(text), tz)
         except ValueError:
-            # If the string format is not valid
-            return event_start
+            return event_start  # not a format we understand; hand it back
     else:
         return ''
+
+    return datetime.combine(local_date, dt_time.min, timezone.utc).isoformat()
+
+
+def _local_date(value, tz):
+    """The calendar day a datetime belongs to, from the reader's point of view."""
+    if value.tzinfo is None:
+        return value.date()  # naive: the wall clock is already local
+    if tz is not None:
+        return value.astimezone(tz).date()
+    return (value - timedelta(hours=FALLBACK_SHIFT_HOURS)).date()
+
 
 def get_ics_events(ics_url: str) -> list[dict]:
     """
@@ -551,7 +615,7 @@ def _match_title(title):
     return title.strip().lower()
 
 
-def sync_with_tasklist(oauth_token, events, include_past_events=True):
+def sync_with_tasklist(oauth_token, events, include_past_events=True, ics_url=None):
     """
     Upserts events into the 'dot_tasklist' in Google Tasks.
 
@@ -568,6 +632,9 @@ def sync_with_tasklist(oauth_token, events, include_past_events=True):
         include_past_events (bool): Whether to insert events whose due date is in
             the past. Updates to already-tracked tasks happen regardless, so a
             date that slips into the past is still corrected.
+        ics_url (str): The feed's URL, used to look up the institution's
+            timezone when the feed contains timed events. Optional; without it
+            those events fall back to the shift (see convert_to_rfc3339).
 
     Returns:
         dict: Counts of added / updated / skipped tasks for the sync operation.
@@ -628,6 +695,14 @@ def sync_with_tasklist(oauth_token, events, include_past_events=True):
         error_count = 0
         current_date = datetime.now(timezone.utc).date()
 
+        # Only feeds with timed events need a timezone, so a feed of nothing but
+        # all-day assignments never triggers the lookup.
+        tz = None
+        if any(is_timed(e['end'] or e['start']) for e in events):
+            tz_name = canvas_timezone(ics_url)
+            tz = ZoneInfo(tz_name) if tz_name else None
+            logging.info(f"Timed events present; using timezone {tz_name or 'fallback shift'}")
+
         for event in events:
             try:
                 key = event_key(event)
@@ -637,9 +712,9 @@ def sync_with_tasklist(oauth_token, events, include_past_events=True):
                 # Desired due date (Canvas assignments only carry a start date)
                 due = None
                 if event['end']:
-                    due = convert_to_rfc3339(event['end'])
+                    due = convert_to_rfc3339(event['end'], tz)
                 elif event['start']:
-                    due = convert_to_rfc3339(event['start'])
+                    due = convert_to_rfc3339(event['start'], tz)
 
                 # Locate an existing task: prefer the UID match, otherwise adopt
                 # a legacy task that matches by title and has no marker yet.

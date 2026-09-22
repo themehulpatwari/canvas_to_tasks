@@ -95,7 +95,7 @@ def sync_task_for_user(user_auth, user_link):
             return False
 
         # Sync with Google Tasks - don't include past events
-        result = sync_with_tasklist(oauth_token, events, include_past_events=False)
+        result = sync_with_tasklist(oauth_token, events, include_past_events=False, ics_url=ics_url)
 
         return bool(result.get('success'))
 

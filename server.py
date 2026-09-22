@@ -375,7 +375,7 @@ def sync_calendar():
                 logger.error(f"MongoDB error: {e}")
             
         # Always exclude past events by passing False
-        result = sync_with_tasklist(session['user'], events, False)
+        result = sync_with_tasklist(session['user'], events, False, ics_url=ics_url)
         
         if result['success']:
             return render_template('import_success.html',
