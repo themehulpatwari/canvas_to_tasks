@@ -1,0 +1,23 @@
+    <header class="site-nav">
+        <div class="site-nav-inner">
+            <a class="brand" href="{{ url_for('home') }}">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" width="14" height="14"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                Canvas to Tasks
+            </a>
+            <div class="nav-right">
+                {% if nav_user is defined and nav_user %}
+                    {% if nav_user.userinfo and nav_user.userinfo.picture %}
+                        <img class="nav-avatar" src="{{ nav_user.userinfo.picture }}" alt="">
+                    {% endif %}
+                    {% if nav_user.userinfo %}
+                        <span class="nav-email">{{ nav_user.userinfo.email }}</span>
+                    {% endif %}
+                    <a class="nav-link" href="/logout">Logout</a>
+                    <span class="nav-sep" aria-hidden="true"></span>
+                {% endif %}
+                <a class="nav-link" href="https://github.com/themehulpatwari/canvas_to_tasks" target="_blank" rel="noopener noreferrer">GitHub</a>
+            </div>
+        </div>
+    </header>

@@ -5,196 +5,180 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Canvas to Google Tasks Converter</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="container modern-container">
-        <div class="page-header">
-            <h1><i class="fas fa-calendar-alt icon-space"></i>Canvas to Tasks</h1>
-            <p class="subtitle">Convert your Canvas assignments into Google Tasks.</p>
-        </div>
-        
+{% set nav_user = session %}
+{% include '_nav.html' %}
+
+    <main class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="flash-messages">
                     {% for category, message in messages %}
-                        <div class="flash-message {{ category }} animated">
-                            <i class="fas fa-info-circle"></i>
+                        <div class="flash-message {{ category }}">
                             <span>{{ message }}</span>
                         </div>
                     {% endfor %}
                 </div>
             {% endif %}
         {% endwith %}
-        
+
         {% if not session %}
-            <div class="card-container">
-                <div class="login-section modern-form">
-                    <p>Sign in with Google to get started.</p>
-                    <a href="/login" class="login-btn modern-btn">
-                        <i class="fab fa-google icon-space"></i>Sign in with Google
+            <section class="hero">
+                <div class="hero-text">
+                    <h1>Convert your Canvas assignments into Google Tasks.</h1>
+                    <p class="hero-lead">Sign in with Google to get started.</p>
+                    <a href="/login" class="google-btn">
+                        <svg class="google-logo" viewBox="0 0 48 48" width="18" height="18" aria-hidden="true">
+                            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                        </svg>
+                        Sign in with Google
                     </a>
                 </div>
-            </div>
-            
-            <!-- App explanation section - only shown when not logged in -->
-            <div class="app-explanation">
-                <h2><i class="fas fa-info-circle icon-space"></i>What it does</h2>
-                <p>Paste your Canvas calendar link once and your assignments show up in Google Tasks with their due dates. It checks Canvas once a day and adds new assignments or updates changed due dates.</p>
-                
+
+                <!-- Illustration of the resulting Google Tasks list -->
+                <div class="task-preview" aria-hidden="true">
+                    <div class="tp-header">
+                        <span class="tp-title">dot_tasklist</span>
+                        <span class="tp-count">3 tasks</span>
+                    </div>
+                    <ul class="tp-list">
+                        <li>
+                            <span class="tp-check"></span>
+                            <div>
+                                <p class="tp-name">Problem Set 4 [MATH 221]</p>
+                                <span class="tp-date">Thu, Sep 24</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="tp-check"></span>
+                            <div>
+                                <p class="tp-name">Lab Report 2 [CHEM 110]</p>
+                                <span class="tp-date">Mon, Sep 28</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="tp-check"></span>
+                            <div>
+                                <p class="tp-name">Essay Draft [ENGL 101]</p>
+                                <span class="tp-date">Fri, Oct 2</span>
+                            </div>
+                        </li>
+                        <li class="done">
+                            <span class="tp-check"></span>
+                            <div>
+                                <p class="tp-name">Reading Response 3 [ENGL 101]</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2>What it does</h2>
+                <p class="section-lead">Paste your Canvas calendar link once and your assignments show up in Google Tasks with their due dates. It checks Canvas once a day and adds new assignments or updates changed due dates.</p>
+
                 <div class="benefits-grid">
                     <div class="benefit-item">
-                        <i class="fas fa-sync-alt benefit-icon"></i>
                         <h3>Syncs daily</h3>
                         <p>After you save your link, it checks Canvas once a day on its own.</p>
                     </div>
                     <div class="benefit-item">
-                        <i class="fas fa-tasks benefit-icon"></i>
                         <h3>Keeps up with changes</h3>
                         <p>If a due date moves, the task moves with it. No duplicates.</p>
                     </div>
                     <div class="benefit-item">
-                        <i class="fas fa-bell benefit-icon"></i>
                         <h3>Shows up where you already look</h3>
                         <p>Your assignments appear in Google Tasks and Google Calendar, on your phone and on the web.</p>
                     </div>
                     <div class="benefit-item">
-                        <i class="fas fa-user-graduate benefit-icon"></i>
                         <h3>Your data</h3>
                         <p>You can disconnect and delete everything at any time.</p>
                     </div>
                 </div>
-                
-                <div class="how-it-works">
-                    <h3><i class="fas fa-cogs icon-space"></i>Setup</h3>
-                    <ol>
-                        <li>Sign in with Google.</li>
-                        <li>In Canvas, go to Calendar → Calendar Feed and copy the link.</li>
-                        <li>Paste it here and click Sync.</li>
-                        <li>Your assignments appear in a new list called "dot_tasklist" in Google Tasks. Tasks show the due date but not the time, since Google Tasks doesn't let apps set one.</li>
-                    </ol>
-                </div>
-            </div>
+            </section>
+
+            <section class="section">
+                <h2>Setup</h2>
+                <ol class="steps">
+                    <li>Sign in with Google.</li>
+                    <li>In Canvas, go to Calendar → Calendar Feed and copy the link.</li>
+                    <li>Paste it here and click Sync.</li>
+                    <li>Your assignments appear in a new list called "dot_tasklist" in Google Tasks. <span class="muted">Tasks show the due date but not the time, since Google Tasks doesn't let apps set one.</span></li>
+                </ol>
+            </section>
         {% endif %}
-        
+
         {% if session %}
-            <div class="card-container">
-                <div class="user-info modern-form">
-                    <h2><i class="fas fa-user-circle icon-space"></i>Welcome, {{ session.userinfo.name if session.userinfo else session.email }}</h2>
-                    
-                    <div class="user-details">
-                        {% if session.userinfo and session.userinfo.picture %}
-                            <img class="user-img" src="{{ session.userinfo.picture }}" alt="Profile Picture">
-                        {% endif %}
-                        <div>
-                            {% if session.userinfo %}
-                                <p><strong>Email:</strong> {{ session.userinfo.email }}</p>
+            <section class="app-layout">
+                <h1 class="page-title">Welcome, {{ session.userinfo.name if session.userinfo else session.email }}</h1>
+
+                <form method="POST" action="{{ url_for('sync_calendar') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="ics_url">Canvas calendar feed link</label>
+                            {% if saved_link %}
+                            <span class="saved-tag">
+                                <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                Saved
+                            </span>
                             {% endif %}
                         </div>
+                        <input type="url" name="ics_url" id="ics_url"
+                               placeholder="https://canvas.institution.edu/calendar.ics"
+                               value="{{ saved_link if saved_link else '' }}" required>
+                        <p class="hint">In Canvas: Calendar → Calendar Feed → copy the link. Other .ics links work too.</p>
                     </div>
-                    
-                    <div class="form-section">
-                        <h3><i class="fas fa-file-import icon-space"></i>Your Canvas calendar</h3>
-                        <form method="POST" action="{{ url_for('sync_calendar') }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <div class="form-group">
-                                <label for="ics_url">
-                                    <i class="fas fa-link icon-space"></i>Canvas calendar feed link
-                                </label>
-                                <div class="input-group">
-                                    <input type="url" name="ics_url" id="ics_url" 
-                                           placeholder="https://canvas.institution.edu/calendar.ics" 
-                                           value="{{ saved_link if saved_link else '' }}" required>
-                                </div>
-                                <div class="format-hint">
-                                    <i class="fas fa-info-circle icon-space"></i>
-                                    <small>In Canvas: Calendar → Calendar Feed → copy the link. Other .ics links work too.</small>
-                                </div>
-                                {% if saved_link %}
-                                <div class="saved-link-info">
-                                    <i class="fas fa-check-circle icon-space"></i>
-                                    <small>Link saved. This syncs automatically every day to the "dot_tasklist" list in Google Tasks. Click Sync to run it now.</small>
-                                </div>
-                                {% endif %}
-                            </div>
-                            <div class="button-group">
-                                <button type="submit" class="sync-btn">
-                                    <i class="fas fa-sync-alt icon-space"></i>Sync now
-                                </button>
-                                <a href="/logout" class="logout-btn">
-                                    <i class="fas fa-sign-out-alt icon-space"></i>Logout
-                                </a>
-                            </div>
-                        </form>
-                        
-                        {% if saved_link %}
-                        <div class="delete-link-container">
-                            <form method="POST" action="{{ url_for('delete_link') }}">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="delete-btn">
-                                    <i class="fas fa-trash-alt icon-space"></i>Delete Calendar Link
-                                </button>
-                            </form>
-                        </div>
-                        {% endif %}
+                    <div class="form-actions">
+                        <button type="submit" class="primary-btn">Sync now</button>
+                    </div>
+                </form>
+            </section>
 
-                        <div class="disconnect-container">
-                            <form id="disconnect-form" method="POST" action="{{ url_for('disconnect') }}">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="delete-btn">
-                                    <i class="fas fa-user-slash icon-space"></i>Disconnect &amp; delete my data
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="error-handling-info">
-                <p>
-                    <i class="fas fa-exclamation-triangle icon-space"></i>
-                    <strong>Something not working?</strong>
-                </p>
+            <section class="section help-section">
+                <h2>Something not working?</h2>
                 <ol>
                     <li>Log out and back in.</li>
                     <li>If that doesn't fix it, clear your cookies and sign in again.</li>
                 </ol>
-            </div>
+
+                <div class="account-actions">
+                    {% if saved_link %}
+                    <form method="POST" action="{{ url_for('delete_link') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="text-btn">Delete Calendar Link</button>
+                    </form>
+                    {% endif %}
+                    <form id="disconnect-form" method="POST" action="{{ url_for('disconnect') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="text-btn">Disconnect &amp; delete my data</button>
+                    </form>
+                </div>
+            </section>
         {% endif %}
 
-        <div class="open-source-section">
-            <h2><i class="fab fa-github icon-space"></i>Open Source</h2>
-            <p>Canvas to Tasks is free and open source. The code is on GitHub if you want to see how it
-               works or contribute.</p>
-            <div class="oss-actions">
-                <a class="oss-btn oss-btn-primary" href="https://github.com/themehulpatwari/canvas_to_tasks" target="_blank" rel="noopener noreferrer">
-                    <i class="fas fa-star icon-space"></i>Star on GitHub
-                </a>
-                <a class="oss-btn" href="https://github.com/themehulpatwari/canvas_to_tasks/blob/main/README.md" target="_blank" rel="noopener noreferrer">
-                    <i class="fas fa-code-branch icon-space"></i>Contribute
-                </a>
-                <a class="oss-btn" href="mailto:themehulpatwari@gmail.com?subject=Canvas%20to%20Tasks%20Feedback">
-                    <i class="fas fa-envelope icon-space"></i>Send Feedback
-                </a>
+        <section class="oss">
+            <div>
+                <h2>Open Source</h2>
+                <p>Canvas to Tasks is free and open source. The code is on GitHub if you want to see how it
+                   works or contribute.</p>
             </div>
-        </div>
-    </div>
+            <div class="oss-actions">
+                <a class="secondary-btn" href="https://github.com/themehulpatwari/canvas_to_tasks" target="_blank" rel="noopener noreferrer">Star on GitHub</a>
+                <a class="secondary-btn" href="https://github.com/themehulpatwari/canvas_to_tasks/blob/main/README.md" target="_blank" rel="noopener noreferrer">Contribute</a>
+                <a class="secondary-btn" href="mailto:themehulpatwari@gmail.com?subject=Canvas%20to%20Tasks%20Feedback">Send Feedback</a>
+            </div>
+        </section>
+    </main>
 
-    <footer class="page-footer">
-        <p>&copy; Canvas to Google Tasks Sync | <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a> | <a href="{{ url_for('terms_of_service') }}">Terms of Service</a></p>
-        <p class="footer-links">
-            <a href="mailto:themehulpatwari@gmail.com?subject=Canvas%20to%20Tasks%20Feedback"><i class="fas fa-envelope icon-space"></i>Contact &amp; Feedback</a>
-            <a href="https://github.com/themehulpatwari/canvas_to_tasks" target="_blank" rel="noopener noreferrer"><i class="fab fa-github icon-space"></i>GitHub</a>
-        </p>
-    </footer>
+{% include '_footer.html' %}
 
     <script nonce="{{ csp_nonce() }}">
-        // Add subtle animation to form elements when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(function() {
-                document.querySelector('.card-container').classList.add('visible');
-            }, 100);
-
             // Confirm before the destructive disconnect/delete action.
             var disconnectForm = document.getElementById('disconnect-form');
             if (disconnectForm) {
